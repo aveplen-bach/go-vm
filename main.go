@@ -42,7 +42,7 @@ VALUE       OPCODE  EXPLANATION
 */
 
 func main() {
-	program := [emu.MEM_SIZE]uint32{
+	program := []uint32{
 		emu.PUSH, 15,
 		emu.PUSH, 12,
 		emu.ADD,
