@@ -6,19 +6,20 @@ import (
 	"testing"
 )
 
-func meminit(data []int, stack []int) []uint32 {
-	memset := make([]uint32, MEM_SIZE)
+func meminit(memory []int) []uint32 {
+	return sliceinit(memory, MEM_SIZE)
+}
 
-	for i := 0; i < len(data); i++ {
-		memset[i] = uint32(data[i])
+func stinit(stack []int) []uint32 {
+	return sliceinit(stack, STACK_LIMIT)
+}
+
+func sliceinit(content []int, size int) []uint32 {
+	sl := make([]uint32, size)
+	for i, v := range content {
+		sl[i] = uint32(v)
 	}
-
-	for i := 0; i < len(stack); i++ {
-		j := i + MEM_SIZE/2
-		memset[j] = uint32(stack[i])
-	}
-
-	return memset
+	return sl
 }
 
 func eq(expected Cpu, got Cpu) (bool, error) {
@@ -36,38 +37,20 @@ func eq(expected Cpu, got Cpu) (bool, error) {
 		)
 	}
 
-	if deq, reason := dataeq(expected.memory, got.memory); !deq {
-		return false, reason
+	if !reflect.DeepEqual(expected.stack, got.stack) {
+		return false, fmt.Errorf(
+			"stacks are not equal: %v, expeced: %v",
+			expected.ip, got.ip,
+		)
 	}
 
-	if seq, reason := stackeq(expected.memory, got.memory); !seq {
-		return false, reason
+	if !reflect.DeepEqual(expected.memory, got.memory) {
+		return false, fmt.Errorf(
+			"memsets are not equal: %v, expeced: %v",
+			expected.ip, got.ip,
+		)
 	}
 
-	return true, nil
-}
-
-func dataeq(expmem []uint32, gotmem []uint32) (bool, error) {
-	for i := 0; i < MEM_SIZE/2; i++ {
-		if expmem[i] != gotmem[i] {
-			return false, fmt.Errorf(
-				"wrong data at memory[%d] value: %d, expected: %d",
-				i, gotmem[i], expmem[i],
-			)
-		}
-	}
-	return true, nil
-}
-
-func stackeq(expmem []uint32, gotmem []uint32) (bool, error) {
-	for i := MEM_SIZE / 2; i < MEM_SIZE; i++ {
-		if expmem[i] != gotmem[i] {
-			return false, fmt.Errorf(
-				"wrong stack at memory[%d] value: %d, expected: %d",
-				i, gotmem[i], expmem[i],
-			)
-		}
-	}
 	return true, nil
 }
 
@@ -85,12 +68,14 @@ func TestCpu_push(t *testing.T) {
 			name: "push should add value to a stack",
 			args: args{1},
 			c: Cpu{
-				sp:     MEM_SIZE / 2,
-				memory: meminit([]int{}, []int{}),
+				sp:     0,
+				memory: meminit([]int{}),
+				stack:  stinit([]int{}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{1}),
+				sp:     1,
+				memory: meminit([]int{}),
+				stack:  stinit([]int{1}),
 			},
 		},
 	}
@@ -116,12 +101,12 @@ func TestCpu_pop(t *testing.T) {
 		{
 			name: "pop should return top value",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{1}),
+				sp:    1,
+				stack: stinit([]int{1}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE / 2,
-				memory: meminit([]int{}, []int{1}),
+				sp:    0,
+				stack: stinit([]int{1}), // stack memory is not cleared
 			},
 			want1: 1,
 		},
@@ -147,14 +132,14 @@ func TestCpu_iadd(t *testing.T) {
 		want Cpu
 	}{
 		{
-			name: "iadd should pop two elements and push their sum",
+			name: "should pop two elements and push their sum",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				memory: meminit([]int{}, []int{1, 2}),
+				sp:    2,
+				stack: stinit([]int{1, 2}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{3, 2}), // leaving waste in stack
+				sp:    1,
+				stack: stinit([]int{3, 2}), // stack memory is not cleared
 			},
 		},
 	}
@@ -177,14 +162,14 @@ func TestCpu_isub(t *testing.T) {
 		want Cpu
 	}{
 		{
-			name: "sub should pop two elements from stack and push their difference",
+			name: "should pop two elements from stack and push their difference",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				memory: meminit([]int{}, []int{2, 1}),
+				sp:    2,
+				stack: stinit([]int{2, 1}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{1, 1}), // leaving waste in stack
+				sp:    1,
+				stack: stinit([]int{1, 1}), // stack memory is not cleared
 			},
 		},
 	}
@@ -209,12 +194,12 @@ func TestCpu_iand(t *testing.T) {
 		{
 			name: "should pop two elements from stack and push bitwise and",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				memory: meminit([]int{}, []int{7, 5}),
+				sp:    2,
+				stack: stinit([]int{7, 5}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{5, 5}), // leaving waste in stack
+				sp:    1,
+				stack: stinit([]int{5, 5}), // stack memory is not cleared
 			},
 		},
 	}
@@ -239,12 +224,12 @@ func TestCpu_ior(t *testing.T) {
 		{
 			name: "should pop two elements from stack and push bitwise and",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				memory: meminit([]int{}, []int{7, 5}),
+				sp:    2,
+				stack: stinit([]int{7, 5}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{7, 5}), // leaving waste in stack
+				sp:    1,
+				stack: stinit([]int{7, 5}), // stack memory is not cleared
 			},
 		},
 	}
@@ -269,12 +254,12 @@ func TestCpu_ixor(t *testing.T) {
 		{
 			name: "should pop two elements from stack and push bitwise xor",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				memory: meminit([]int{}, []int{7, 5}),
+				sp:    2,
+				stack: stinit([]int{7, 5}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{2, 5}), // leaving waste in stack
+				sp:    1,
+				stack: stinit([]int{2, 5}), // stack memory is not cleared
 			},
 		},
 	}
@@ -299,12 +284,12 @@ func TestCpu_inot(t *testing.T) {
 		{
 			name: "should pop elements from stack and push bitwise not",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{5}),
+				sp:    1,
+				stack: stinit([]int{2}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{^5}),
+				sp:    1,
+				stack: stinit([]int{^2}),
 			},
 		},
 	}
@@ -329,12 +314,14 @@ func TestCpu_iload(t *testing.T) {
 		{
 			name: "should load value from memory onto the stack",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{5}, []int{0}),
+				sp:     1,
+				memory: meminit([]int{5}),
+				stack:  stinit([]int{0}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{5}, []int{5}),
+				sp:     1,
+				memory: meminit([]int{5}),
+				stack:  stinit([]int{5}),
 			},
 		},
 	}
@@ -359,12 +346,14 @@ func TestCpu_istor(t *testing.T) {
 		{
 			name: "should store value from stack into memory",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				memory: meminit([]int{1, 2, 3}, []int{34, 1}),
+				sp:     2,
+				stack:  stinit([]int{34, 1}),
+				memory: meminit([]int{1, 2, 3}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE / 2,
-				memory: meminit([]int{1, 34, 3}, []int{34, 1}),
+				sp:     0,
+				stack:  stinit([]int{34, 1}),
+				memory: meminit([]int{1, 34, 3}),
 			},
 		},
 	}
@@ -389,14 +378,14 @@ func TestCpu_ijmp(t *testing.T) {
 		{
 			name: "should pop value from stack and goto there",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				ip:     0,
-				memory: meminit([]int{}, []int{42}),
+				sp:    1,
+				ip:    0,
+				stack: stinit([]int{42}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE / 2,
-				ip:     42,
-				memory: meminit([]int{}, []int{42}),
+				sp:    0,
+				ip:    42 + MEM_SIZE/2,
+				stack: stinit([]int{42}),
 			},
 		},
 	}
@@ -421,27 +410,27 @@ func TestCpu_ijz(t *testing.T) {
 		{
 			name: "should pop value from stack and goto there",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				ip:     0,
-				memory: meminit([]int{}, []int{42, 0}),
+				sp:    2,
+				ip:    0,
+				stack: stinit([]int{42, 0}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE / 2,
-				ip:     42,
-				memory: meminit([]int{}, []int{42, 0}),
+				sp:    0,
+				ip:    42 + MEM_SIZE/2,
+				stack: stinit([]int{42, 0}),
 			},
 		},
 		{
 			name: "should pop value from stack and not goto there",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				ip:     0,
-				memory: meminit([]int{}, []int{42, 1}),
+				sp:    2,
+				ip:    0,
+				stack: stinit([]int{42, 1}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE / 2,
-				ip:     0,
-				memory: meminit([]int{}, []int{42, 1}),
+				sp:    0,
+				ip:    0,
+				stack: stinit([]int{42, 1}),
 			},
 		},
 	}
@@ -466,14 +455,16 @@ func TestCpu_ipush(t *testing.T) {
 		{
 			name: "should push next word onto the stack",
 			c: Cpu{
-				sp:     MEM_SIZE / 2,
+				sp:     0,
 				ip:     0,
-				memory: meminit([]int{42}, []int{}),
+				memory: meminit([]int{42}),
+				stack:  stinit([]int{}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 1,
+				sp:     1,
 				ip:     1,
-				memory: meminit([]int{42}, []int{42}),
+				memory: meminit([]int{42}),
+				stack:  stinit([]int{42}),
 			},
 		},
 	}
@@ -498,12 +489,12 @@ func TestCpu_idup(t *testing.T) {
 		{
 			name: "should duplicate stack top",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{42}),
+				sp:    1,
+				stack: stinit([]int{42}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				memory: meminit([]int{}, []int{42, 42}),
+				sp:    2,
+				stack: stinit([]int{42, 42}),
 			},
 		},
 	}
@@ -528,12 +519,12 @@ func TestCpu_iswap(t *testing.T) {
 		{
 			name: "should swap two top stack values",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				memory: meminit([]int{}, []int{24, 42}),
+				sp:    2,
+				stack: stinit([]int{24, 42}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				memory: meminit([]int{}, []int{42, 24}),
+				sp:    2,
+				stack: stinit([]int{42, 24}),
 			},
 		},
 	}
@@ -558,12 +549,12 @@ func TestCpu_irol3(t *testing.T) {
 		{
 			name: "(a, b, c) -> (b, c, a)",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 3,
-				memory: meminit([]int{}, []int{24, 42, 86}),
+				sp:    3,
+				stack: stinit([]int{24, 42, 86}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 3,
-				memory: meminit([]int{}, []int{42, 86, 24}),
+				sp:    3,
+				stack: stinit([]int{42, 86, 24}),
 			},
 		},
 	}
@@ -588,27 +579,27 @@ func TestCpu_ijnz(t *testing.T) {
 		{
 			name: "should pop value from stack and goto there",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				ip:     0,
-				memory: meminit([]int{}, []int{42, 1}),
+				sp:    2,
+				ip:    0,
+				stack: stinit([]int{42, 1}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE / 2,
-				ip:     42,
-				memory: meminit([]int{}, []int{42, 1}),
+				sp:    0,
+				ip:    42 + MEM_SIZE/2,
+				stack: stinit([]int{42, 1}),
 			},
 		},
 		{
 			name: "should pop value from stack and not goto there",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 2,
-				ip:     0,
-				memory: meminit([]int{}, []int{42, 0}),
+				sp:    2,
+				ip:    0,
+				stack: stinit([]int{42, 0}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE / 2,
-				ip:     0,
-				memory: meminit([]int{}, []int{42, 0}),
+				sp:    0,
+				ip:    0,
+				stack: stinit([]int{42, 0}),
 			},
 		},
 	}
@@ -633,12 +624,12 @@ func TestCpu_idrop(t *testing.T) {
 		{
 			name: "should drop stack top",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{42}),
+				sp:    1,
+				stack: stinit([]int{42}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE / 2,
-				memory: meminit([]int{}, []int{42}),
+				sp:    0,
+				stack: stinit([]int{42}),
 			},
 		},
 	}
@@ -663,12 +654,12 @@ func TestCpu_icomp(t *testing.T) {
 		{
 			name: "should push top complement",
 			c: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{42}),
+				sp:    1,
+				stack: stinit([]int{42}),
 			},
 			want: Cpu{
-				sp:     MEM_SIZE/2 + 1,
-				memory: meminit([]int{}, []int{-42}),
+				sp:    1,
+				stack: stinit([]int{-42}),
 			},
 		},
 	}
@@ -691,15 +682,20 @@ func TestCpu_MemDump(t *testing.T) {
 		want []uint32
 	}{
 		{
-			name: "should return compy of memory dump",
+			name: "should return copy of memory dump",
 			c: Cpu{
-				memory: meminit([]int{1, 2, 3}, []int{}),
+				memory: []uint32{1, 2, 3},
 			},
-			want: append([]uint32{1, 2, 3}, make([]uint32, MEM_SIZE/2-3)...),
+			want: []uint32{1, 2, 3},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			ttwant := make([]uint32, MEM_SIZE)
+			copy(ttwant, tt.want)
+			tt.want = ttwant
+
 			if got := tt.c.MemDump(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Cpu.MemDump() = %v, want %v", got, tt.want)
 			}

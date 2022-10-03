@@ -7,41 +7,34 @@ import (
 )
 
 const (
-	MEM_SIZE int = 200
+	MEM_SIZE    int = 200
+	STACK_LIMIT int = 20
 )
 
 type Cpu struct {
+	stack  []uint32
 	memory []uint32
 	sp     int
 	ip     int
 }
 
-func WithMem(program []uint32, start int) Cpu {
+func WithMem(memory []uint32, program []uint32) Cpu {
 	instance := Cpu{
-		memory: make([]uint32, MEM_SIZE),
-		sp:     MEM_SIZE / 2,
-		ip:     start,
-	}
-	copy(instance.memory, program)
-	return instance
-}
-
-func WithProgram(program []uint32) Cpu {
-	instance := Cpu{
-		memory: make([]uint32, MEM_SIZE),
-		sp:     MEM_SIZE / 2,
+		stack: make([]uint32, STACK_LIMIT),
+		ip:    MEM_SIZE / 2,
 	}
 
-	for i := 0; i < len(program); i++ {
-		j := i + MEM_SIZE/2
-		instance.memory[j] = program[i]
+	instance.memory = make([]uint32, MEM_SIZE)
+	copy(instance.memory, memory)
+	for i, v := range program {
+		instance.memory[i+MEM_SIZE/2] = v
 	}
 
 	return instance
 }
 
 func (c *Cpu) MemDump() []uint32 {
-	dump := make([]uint32, MEM_SIZE/2)
+	dump := make([]uint32, MEM_SIZE)
 	copy(dump, c.memory)
 	return dump
 }
@@ -112,19 +105,19 @@ func (c *Cpu) execute(cmd uint32) {
 }
 
 func (c *Cpu) push(n uint32) {
-	if c.sp == MEM_SIZE {
+	if c.sp == STACK_LIMIT {
 		panic("stack overflow")
 	}
-	c.memory[c.sp] = n
+	c.stack[c.sp] = n
 	c.sp++
 }
 
 func (c *Cpu) pop() uint32 {
-	if c.sp == MEM_SIZE/2 {
+	if c.sp == 0 {
 		panic("stack underflow")
 	}
 	c.sp--
-	return c.memory[c.sp]
+	return c.stack[c.sp]
 }
 
 // do nothing
@@ -202,7 +195,7 @@ func (c *Cpu) istor() {
 
 // pop a, goto a
 func (c *Cpu) ijmp() {
-	c.ip = int(c.pop())
+	c.ip = int(c.pop()) + MEM_SIZE/2
 }
 
 // pop a, pop b, if a == 0 goto b
@@ -210,7 +203,7 @@ func (c *Cpu) ijz() {
 	a := c.pop()
 	b := c.pop()
 	if a == 0 {
-		c.ip = int(b)
+		c.ip = int(b) + MEM_SIZE/2
 	}
 }
 
@@ -255,7 +248,7 @@ func (c *Cpu) ijnz() {
 	a := c.pop()
 	b := c.pop()
 	if a != 0 {
-		c.ip = int(b)
+		c.ip = int(b) + MEM_SIZE/2
 	}
 }
 

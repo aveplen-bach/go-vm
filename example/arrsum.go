@@ -4,17 +4,12 @@ import (
 	"github.com/aveplen/sm/emu"
 )
 
-// required initial memory layout:
-//
-// array length
-//
-//	|
-//	v
-//	5 1 2 3 4 5 ...
-//	  ^
-//	  |
-//	result
-func ArraySum(arr []uint32) uint32 {
+// required memory layout:
+//	      5 1 2 3 4 5 ...
+//	      ^
+//	      |
+//	length/result
+func ArraySum(arr []int) int {
 
 	program := []uint32{
 		// sum up here
@@ -26,77 +21,54 @@ func ArraySum(arr []uint32) uint32 {
 		/* 03 */ 0,
 		/* 04 */ emu.LOAD,
 
-		/* 05 */ emu.DUP,
+		// while (top > 0) {
+		/* 		05 */ emu.DUP,
+		/* 		06 */ emu.PUSH,
+		/* 		07 */ 23,
+		/* 		08 */ emu.SWAP,
+		/* 		09 */ emu.JZ,
 
-		// push finish addr
-		/* 06 */ emu.PUSH,
-		/* 07 */ 34,
-		/* 08 */ emu.PUSH,
-		/* 09 */ 1,
-		/* 10 */ emu.ADD,
-		/* 11 */ emu.PUSH,
-		/* 12 */ 0,
-		/* 13 */ emu.LOAD,
-		/* 14 */ emu.ADD,
-		/* 15 */ emu.SWAP,
+		// 		decrement iterator
+		/* 		10 */ emu.DUP,
+		/* 		11 */ emu.LOAD,
+		/* 		12 */ emu.SWAP,
+		/* 		13 */ emu.PUSH,
+		/* 		14 */ 1,
+		/* 		15 */ emu.SUB,
 
-		// if len(arr) == 0 skip iteration
-		/* 16 */ emu.JZ,
+		// 		add element to result
+		/* 		16 */ emu.SWAP,
+		/* 		17 */ emu.ROL3,
+		/* 		18 */ emu.ADD,
+		/* 		19 */ emu.SWAP,
 
-		// decrement iterator
-		/* 17 */ emu.DUP,
-		/* 18 */ emu.LOAD,
-		/* 19 */ emu.SWAP,
-		/* 20 */ emu.PUSH,
-		/* 21 */ 1,
-		/* 22 */ emu.SUB,
+		/* 		20 */ emu.PUSH,
+		/* 		21 */ 5,
+		/* 		22 */ emu.JMP,
+		// }
 
-		// add element to result
-		/* 23 */ emu.SWAP,
-		/* 24 */ emu.ROL3,
-		/* 25 */ emu.ADD,
-		/* 26 */ emu.SWAP,
-
-		// loop
-		/* 27 */ emu.PUSH,
-		/* 28 */ 6,
-		/* 29 */ emu.PUSH,
-		/* 30 */ 0,
-		/* 31 */ emu.LOAD,
-		/* 32 */ emu.ADD,
-		// goto 6
-		/* 33 */ emu.JMP,
-
-		// save result into memory[1]
-		/* 34 */ emu.PUSH,
-		/* 35 */ 1,
-		/* 36 */ emu.ADD,
-		/* 37 */ emu.STOR,
+		// save result into memory[0]
+		/* 23 */ emu.STOR,
 
 		// infinite loop
-		/* 38 */ emu.PUSH,
-		/* 39 */ 38,
-		/* 40 */ emu.PUSH,
-		/* 41 */ 1,
-		/* 42 */ emu.ADD,
-		/* 43 */ emu.PUSH,
-		/* 44 */ 0,
-		/* 45 */ emu.LOAD,
-		/* 46 */ emu.ADD,
-		/* 47 */ emu.JMP,
+		/* 24 */ emu.PUSH,
+		/* 25 */ 24,
+		/* 26 */ emu.JMP,
 	}
 
-	memory := append([]uint32{uint32(len(arr))}, arr...)
-	start := len(memory)
+	// memory = [5 13 14 15 16 17]
+	//           ^
+	//         length
+	memory := make([]uint32, 0, len(arr)+1)
+	memory = append(memory, uint32(len(arr)))
+	for _, v := range arr {
+		memory = append(memory, uint32(v))
+	}
 
-	memory = append(memory, program...)
-
-	cpu := emu.WithMem(memory, start)
-
+	cpu := emu.WithMem(memory, program)
 	for i := 0; i < 1000; i++ {
 		cpu.Tick()
 	}
-
 	dump := cpu.MemDump()
-	return dump[1]
+	return int(dump[0])
 }

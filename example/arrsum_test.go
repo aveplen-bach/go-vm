@@ -4,26 +4,26 @@ import "testing"
 
 func TestArraySum(t *testing.T) {
 	type args struct {
-		arr []uint32
+		arr []int
 	}
 	tests := []struct {
 		name string
 		args args
-		want uint32
+		want int
 	}{
-		{
-			name: "sum([]) = 0",
-			args: args{
-				arr: []uint32{},
-			},
-			want: 0,
-		},
 		{
 			name: "sum(3, 5, 4, 7) = 19",
 			args: args{
-				arr: []uint32{3, 5, 4, 7},
+				arr: []int{3, 5, 4, 7},
 			},
 			want: 19,
+		},
+		{
+			name: "sum([]) = 0",
+			args: args{
+				arr: []int{},
+			},
+			want: 0,
 		},
 	}
 	for _, tt := range tests {
