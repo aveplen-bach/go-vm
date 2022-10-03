@@ -1,6 +1,9 @@
 package main
 
-import "github.com/aveplen/sm/emu"
+import (
+	"github.com/aveplen/sm/example"
+	"github.com/aveplen/sm/out"
+)
 
 /*---------------------------------------------------------*
 * ИКМО-05-22, Пленкин Алексей, Вариант 4 = 0100            *
@@ -42,18 +45,9 @@ VALUE       OPCODE  EXPLANATION
 */
 
 func main() {
-	program := []uint32{
-		emu.PUSH, 15,
-		emu.PUSH, 12,
-		emu.ADD,
-		emu.OUTNUM,
-		emu.PUSH, 6,
-		emu.JMP,
-	}
-
-	cpu := emu.WithProgram(program)
-
-	for i := 0; i < len(program); i++ {
+	cpu := example.CpuWithArraySum([]int{12, 15, 14, 27})
+	for i := 0; i < 1000; i++ {
 		cpu.Tick()
 	}
+	out.PrintDump(cpu)
 }

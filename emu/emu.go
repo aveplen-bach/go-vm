@@ -8,7 +8,7 @@ import (
 
 const (
 	MEM_SIZE    int = 200
-	STACK_LIMIT int = 20
+	STACK_LIMIT int = 16
 )
 
 type Cpu struct {
@@ -37,6 +37,20 @@ func (c *Cpu) MemDump() []uint32 {
 	dump := make([]uint32, MEM_SIZE)
 	copy(dump, c.memory)
 	return dump
+}
+
+func (c *Cpu) StackDump() []uint32 {
+	dump := make([]uint32, STACK_LIMIT)
+	copy(dump, c.stack)
+	return dump
+}
+
+func (c *Cpu) GetSp() int {
+	return c.sp
+}
+
+func (c *Cpu) GetIp() int {
+	return c.ip
 }
 
 func (c *Cpu) Tick() {
