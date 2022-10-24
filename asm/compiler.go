@@ -251,9 +251,15 @@ type lexemiterator interface {
 	hasnext() bool
 }
 
+type labelref struct {
+	at   int
+	name string
+}
+
 type compiler struct {
 	in     bufio.Reader
 	labels map[string]uint32
+	lrefq  []labelref
 	ino    int
 }
 
@@ -289,7 +295,8 @@ func (c *compiler) compile() []uint32 {
 		c.ino++
 	}
 
-	return buf
+	program := c.resolvelabelrefs(buf)
+	return program
 }
 
 func (c *compiler) compileinstr(value string) uint32 {
@@ -333,12 +340,9 @@ func (c *compiler) compileint(value string) uint32 {
 	return uint32(asint64)
 }
 
-var ()
-
 func (c *compiler) compilelabel(value string) uint32 {
 	raw := value[:len(value)-1]
-	_, ok := c.labels[raw]
-	if ok {
+	if _, ok := c.labels[raw]; ok {
 		panic(fmt.Errorf("attempt to overwrite '%s' label", raw))
 	}
 
@@ -350,16 +354,34 @@ func (c *compiler) compilelabelref(value string) uint32 {
 	raw := value[1:]
 	labref, ok := c.labels[raw]
 	if !ok {
-		panic(fmt.Errorf("attempt to reference unexistant label '%s'", raw))
+		c.lrefq = append(c.lrefq, labelref{
+			at:   c.ino,
+			name: raw,
+		})
 	}
 	return labref
+}
+
+func (c *compiler) resolvelabelrefs(prog []uint32) []uint32 {
+	processed := make([]uint32, len(prog))
+	copy(processed, prog)
+
+	for _, labelref := range c.lrefq {
+		ref, ok := c.labels[labelref.name]
+		if !ok {
+			panic(fmt.Errorf("could not backref label '%s'", labelref.name))
+		}
+
+		processed[labelref.at] = ref
+	}
+
+	return processed
 }
 
 func Compile(in bufio.Reader) []uint32 {
 	c := compiler{
 		in:     in,
 		labels: make(map[string]uint32),
-		ino:    1,
 	}
 	return c.compile()
 }
