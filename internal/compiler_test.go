@@ -105,6 +105,12 @@ func Test_lexemiter_next(t *testing.T) {
 			name: "should goto next lexem",
 			li: &lexemiter{
 				buf: []rune("nop"),
+				runeiter: &runeiter{
+					in:     *bufio.NewReader(bytes.NewBuffer([]byte("bc ddd"))),
+					opened: true,
+					closed: false,
+					n:      rune('a'),
+				},
 			},
 			want: lexem{
 				val: "nop",
