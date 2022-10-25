@@ -1,0 +1,1 @@
+push 0 load dup push &term swap jz stc while: cts load cdec cts push &sumroutine swap JZ push &while jmp sumroutine: push 0 load stc cdec whilee: cts push &endroutine swap jz add cdec push &whilee jmp endroutine: push 0 stor term: term
