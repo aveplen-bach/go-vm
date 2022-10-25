@@ -1,4 +1,4 @@
-package compiler
+package internal
 
 import (
 	"bufio"
@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-
-	"github.com/aveplen/sm/emu"
 )
 
 const (
@@ -136,32 +134,7 @@ func isinteger(word string) bool {
 }
 
 func isinstruction(word string) bool {
-	iset := map[string]struct{}{
-		"nop":    {},
-		"add":    {},
-		"sub":    {},
-		"and":    {},
-		"or":     {},
-		"xor":    {},
-		"not":    {},
-		"in":     {},
-		"out":    {},
-		"load":   {},
-		"stor":   {},
-		"jmp":    {},
-		"jz":     {},
-		"push":   {},
-		"dup":    {},
-		"swap":   {},
-		"rol3":   {},
-		"outnum": {},
-		"jnz":    {},
-		"drop":   {},
-		"compl":  {},
-	}
-
-	_, ok := iset[strings.ToLower(word)]
-	return ok
+	return Sinst(strings.ToLower(word))
 }
 
 func islabel(word string) bool {
@@ -300,36 +273,7 @@ func (c *compiler) compile() []uint32 {
 }
 
 func (c *compiler) compileinstr(value string) uint32 {
-	strmap := map[string]uint32{
-		"nop":    emu.NOP,
-		"add":    emu.ADD,
-		"sub":    emu.SUB,
-		"and":    emu.AND,
-		"or":     emu.OR,
-		"xor":    emu.XOR,
-		"not":    emu.NOT,
-		"in":     emu.IN,
-		"out":    emu.OUT,
-		"load":   emu.LOAD,
-		"stor":   emu.STOR,
-		"jmp":    emu.JMP,
-		"jz":     emu.JZ,
-		"push":   emu.PUSH,
-		"dup":    emu.DUP,
-		"swap":   emu.SWAP,
-		"rol3":   emu.ROL3,
-		"outnum": emu.OUTNUM,
-		"jnz":    emu.JNZ,
-		"drop":   emu.DROP,
-		"compl":  emu.COMPL,
-	}
-
-	code, ok := strmap[strings.ToLower(value)]
-	if !ok {
-		panic("unkown instruction mnemonics")
-	}
-
-	return code
+	return uint32(Stoi(strings.ToLower(value)))
 }
 
 func (c *compiler) compileint(value string) uint32 {
@@ -347,7 +291,7 @@ func (c *compiler) compilelabel(value string) uint32 {
 	}
 
 	c.labels[raw] = uint32(c.ino)
-	return emu.NOP
+	return NOP
 }
 
 func (c *compiler) compilelabelref(value string) uint32 {

@@ -1,4 +1,4 @@
-package emu
+package internal
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ func sliceinit(content []int, size int) []uint32 {
 	return sl
 }
 
-func eq(expected Cpu, got Cpu) (bool, error) {
+func eq(expected cpu, got cpu) (bool, error) {
 	if got.sp != expected.sp {
 		return false, fmt.Errorf(
 			"wrong stack pointer value: %d, expected: %d",
@@ -60,19 +60,19 @@ func TestCpu_push(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		c    Cpu
+		c    cpu
 		args args
-		want Cpu
+		want cpu
 	}{
 		{
 			name: "push should add value to a stack",
 			args: args{1},
-			c: Cpu{
+			c: cpu{
 				sp:     0,
 				memory: meminit([]int{}),
 				stack:  stinit([]int{}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:     1,
 				memory: meminit([]int{}),
 				stack:  stinit([]int{1}),
@@ -94,17 +94,17 @@ func TestCpu_push(t *testing.T) {
 func TestCpu_pop(t *testing.T) {
 	tests := []struct {
 		name  string
-		c     Cpu
-		want  Cpu
+		c     cpu
+		want  cpu
 		want1 uint32
 	}{
 		{
 			name: "pop should return top value",
-			c: Cpu{
+			c: cpu{
 				sp:    1,
 				stack: stinit([]int{1}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    0,
 				stack: stinit([]int{1}), // stack memory is not cleared
 			},
@@ -114,7 +114,7 @@ func TestCpu_pop(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.c.pop(); got != tt.want1 {
-				t.Errorf("Cpu.pop() = %v, want %v", got, tt.want1)
+				t.Errorf("cpu.pop() = %v, want %v", got, tt.want1)
 			}
 
 			equal, problem := eq(tt.want, tt.c)
@@ -128,16 +128,16 @@ func TestCpu_pop(t *testing.T) {
 func TestCpu_iadd(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should pop two elements and push their sum",
-			c: Cpu{
+			c: cpu{
 				sp:    2,
 				stack: stinit([]int{1, 2}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    1,
 				stack: stinit([]int{3, 2}), // stack memory is not cleared
 			},
@@ -158,16 +158,16 @@ func TestCpu_iadd(t *testing.T) {
 func TestCpu_isub(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should pop two elements from stack and push their difference",
-			c: Cpu{
+			c: cpu{
 				sp:    2,
 				stack: stinit([]int{2, 1}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    1,
 				stack: stinit([]int{1, 1}), // stack memory is not cleared
 			},
@@ -188,16 +188,16 @@ func TestCpu_isub(t *testing.T) {
 func TestCpu_iand(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should pop two elements from stack and push bitwise and",
-			c: Cpu{
+			c: cpu{
 				sp:    2,
 				stack: stinit([]int{7, 5}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    1,
 				stack: stinit([]int{5, 5}), // stack memory is not cleared
 			},
@@ -218,16 +218,16 @@ func TestCpu_iand(t *testing.T) {
 func TestCpu_ior(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should pop two elements from stack and push bitwise and",
-			c: Cpu{
+			c: cpu{
 				sp:    2,
 				stack: stinit([]int{7, 5}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    1,
 				stack: stinit([]int{7, 5}), // stack memory is not cleared
 			},
@@ -248,16 +248,16 @@ func TestCpu_ior(t *testing.T) {
 func TestCpu_ixor(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should pop two elements from stack and push bitwise xor",
-			c: Cpu{
+			c: cpu{
 				sp:    2,
 				stack: stinit([]int{7, 5}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    1,
 				stack: stinit([]int{2, 5}), // stack memory is not cleared
 			},
@@ -278,16 +278,16 @@ func TestCpu_ixor(t *testing.T) {
 func TestCpu_inot(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should pop elements from stack and push bitwise not",
-			c: Cpu{
+			c: cpu{
 				sp:    1,
 				stack: stinit([]int{2}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    1,
 				stack: stinit([]int{^2}),
 			},
@@ -308,17 +308,17 @@ func TestCpu_inot(t *testing.T) {
 func TestCpu_iload(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should load value from memory onto the stack",
-			c: Cpu{
+			c: cpu{
 				sp:     1,
 				memory: meminit([]int{5}),
 				stack:  stinit([]int{0}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:     1,
 				memory: meminit([]int{5}),
 				stack:  stinit([]int{5}),
@@ -340,17 +340,17 @@ func TestCpu_iload(t *testing.T) {
 func TestCpu_istor(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should store value from stack into memory",
-			c: Cpu{
+			c: cpu{
 				sp:     2,
 				stack:  stinit([]int{34, 1}),
 				memory: meminit([]int{1, 2, 3}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:     0,
 				stack:  stinit([]int{34, 1}),
 				memory: meminit([]int{1, 34, 3}),
@@ -372,17 +372,17 @@ func TestCpu_istor(t *testing.T) {
 func TestCpu_ijmp(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should pop value from stack and goto there",
-			c: Cpu{
+			c: cpu{
 				sp:    1,
 				ip:    0,
 				stack: stinit([]int{42}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    0,
 				ip:    42 + MEM_SIZE/2,
 				stack: stinit([]int{42}),
@@ -404,17 +404,17 @@ func TestCpu_ijmp(t *testing.T) {
 func TestCpu_ijz(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should pop value from stack and goto there",
-			c: Cpu{
+			c: cpu{
 				sp:    2,
 				ip:    0,
 				stack: stinit([]int{42, 0}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    0,
 				ip:    42 + MEM_SIZE/2,
 				stack: stinit([]int{42, 0}),
@@ -422,12 +422,12 @@ func TestCpu_ijz(t *testing.T) {
 		},
 		{
 			name: "should pop value from stack and not goto there",
-			c: Cpu{
+			c: cpu{
 				sp:    2,
 				ip:    0,
 				stack: stinit([]int{42, 1}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    0,
 				ip:    0,
 				stack: stinit([]int{42, 1}),
@@ -449,18 +449,18 @@ func TestCpu_ijz(t *testing.T) {
 func TestCpu_ipush(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should push next word onto the stack",
-			c: Cpu{
+			c: cpu{
 				sp:     0,
 				ip:     0,
 				memory: meminit([]int{42}),
 				stack:  stinit([]int{}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:     1,
 				ip:     1,
 				memory: meminit([]int{42}),
@@ -483,16 +483,16 @@ func TestCpu_ipush(t *testing.T) {
 func TestCpu_idup(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should duplicate stack top",
-			c: Cpu{
+			c: cpu{
 				sp:    1,
 				stack: stinit([]int{42}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    2,
 				stack: stinit([]int{42, 42}),
 			},
@@ -513,16 +513,16 @@ func TestCpu_idup(t *testing.T) {
 func TestCpu_iswap(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should swap two top stack values",
-			c: Cpu{
+			c: cpu{
 				sp:    2,
 				stack: stinit([]int{24, 42}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    2,
 				stack: stinit([]int{42, 24}),
 			},
@@ -543,16 +543,16 @@ func TestCpu_iswap(t *testing.T) {
 func TestCpu_irol3(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "(a, b, c) -> (b, c, a)",
-			c: Cpu{
+			c: cpu{
 				sp:    3,
 				stack: stinit([]int{24, 42, 86}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    3,
 				stack: stinit([]int{42, 86, 24}),
 			},
@@ -573,17 +573,17 @@ func TestCpu_irol3(t *testing.T) {
 func TestCpu_ijnz(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should pop value from stack and goto there",
-			c: Cpu{
+			c: cpu{
 				sp:    2,
 				ip:    0,
 				stack: stinit([]int{42, 1}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    0,
 				ip:    42 + MEM_SIZE/2,
 				stack: stinit([]int{42, 1}),
@@ -591,12 +591,12 @@ func TestCpu_ijnz(t *testing.T) {
 		},
 		{
 			name: "should pop value from stack and not goto there",
-			c: Cpu{
+			c: cpu{
 				sp:    2,
 				ip:    0,
 				stack: stinit([]int{42, 0}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    0,
 				ip:    0,
 				stack: stinit([]int{42, 0}),
@@ -618,16 +618,16 @@ func TestCpu_ijnz(t *testing.T) {
 func TestCpu_idrop(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should drop stack top",
-			c: Cpu{
+			c: cpu{
 				sp:    1,
 				stack: stinit([]int{42}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    0,
 				stack: stinit([]int{42}),
 			},
@@ -648,16 +648,16 @@ func TestCpu_idrop(t *testing.T) {
 func TestCpu_icomp(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
-		want Cpu
+		c    cpu
+		want cpu
 	}{
 		{
 			name: "should push top complement",
-			c: Cpu{
+			c: cpu{
 				sp:    1,
 				stack: stinit([]int{42}),
 			},
-			want: Cpu{
+			want: cpu{
 				sp:    1,
 				stack: stinit([]int{-42}),
 			},
@@ -678,12 +678,12 @@ func TestCpu_icomp(t *testing.T) {
 func TestCpu_MemDump(t *testing.T) {
 	tests := []struct {
 		name string
-		c    Cpu
+		c    cpu
 		want []uint32
 	}{
 		{
 			name: "should return copy of memory dump",
-			c: Cpu{
+			c: cpu{
 				memory: []uint32{1, 2, 3},
 			},
 			want: []uint32{1, 2, 3},
@@ -697,7 +697,7 @@ func TestCpu_MemDump(t *testing.T) {
 			tt.want = ttwant
 
 			if got := tt.c.MemDump(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Cpu.MemDump() = %v, want %v", got, tt.want)
+				t.Errorf("cpu.MemDump() = %v, want %v", got, tt.want)
 			}
 		})
 	}

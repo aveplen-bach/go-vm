@@ -1,12 +1,10 @@
-package compiler
+package internal
 
 import (
 	"bufio"
 	"bytes"
 	"reflect"
 	"testing"
-
-	"github.com/aveplen/sm/emu"
 )
 
 func Test_runeiter_walk(t *testing.T) {
@@ -136,7 +134,7 @@ func Test_compiler_compile(t *testing.T) {
 				in:     *bufio.NewReader(bytes.NewBuffer([]byte("add In jMp NOP"))),
 				labels: make(map[string]uint32),
 			},
-			want: []uint32{emu.ADD, emu.IN, emu.JMP, emu.NOP},
+			want: []uint32{ADD, IN, JMP, NOP},
 		},
 		{
 			name: "should compile stream of numbers",
@@ -152,7 +150,7 @@ func Test_compiler_compile(t *testing.T) {
 				in:     *bufio.NewReader(bytes.NewBuffer([]byte("a: b: c: d: add"))),
 				labels: make(map[string]uint32),
 			},
-			want: []uint32{emu.NOP, emu.NOP, emu.NOP, emu.NOP, emu.ADD},
+			want: []uint32{NOP, NOP, NOP, NOP, ADD},
 			wlabels: map[string]uint32{
 				"a": 0,
 				"b": 1,
@@ -166,7 +164,7 @@ func Test_compiler_compile(t *testing.T) {
 				in:     *bufio.NewReader(bytes.NewBuffer([]byte("a: b: c: d:"))),
 				labels: make(map[string]uint32),
 			},
-			want: []uint32{emu.NOP, emu.NOP, emu.NOP, emu.NOP},
+			want: []uint32{NOP, NOP, NOP, NOP},
 			wlabels: map[string]uint32{
 				"a": 0,
 				"b": 1,
@@ -193,7 +191,7 @@ func Test_compiler_compile(t *testing.T) {
 				in:     *bufio.NewReader(bytes.NewBuffer([]byte("add nop a: load &a jmp"))),
 				labels: make(map[string]uint32),
 			},
-			want: []uint32{emu.ADD, emu.NOP, emu.NOP, emu.LOAD, 2, emu.JMP},
+			want: []uint32{ADD, NOP, NOP, LOAD, 2, JMP},
 		},
 		{
 			name: "should be able to reference stacked lablels",
@@ -201,7 +199,7 @@ func Test_compiler_compile(t *testing.T) {
 				in:     *bufio.NewReader(bytes.NewBuffer([]byte("add nop a: b: load &a &b jmp"))),
 				labels: make(map[string]uint32),
 			},
-			want: []uint32{emu.ADD, emu.NOP, emu.NOP, emu.NOP, emu.LOAD, 2, 3, emu.JMP},
+			want: []uint32{ADD, NOP, NOP, NOP, LOAD, 2, 3, JMP},
 		},
 		{
 			name: "should be able to resolve references before labels",
@@ -209,7 +207,7 @@ func Test_compiler_compile(t *testing.T) {
 				in:     *bufio.NewReader(bytes.NewBuffer([]byte("add nop &a &b load a: b: jmp"))),
 				labels: make(map[string]uint32),
 			},
-			want: []uint32{emu.ADD, emu.NOP, 5, 6, emu.LOAD, emu.NOP, emu.NOP, emu.JMP},
+			want: []uint32{ADD, NOP, 5, 6, LOAD, NOP, NOP, JMP},
 		},
 	}
 	for _, tt := range tests {

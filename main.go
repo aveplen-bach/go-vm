@@ -42,6 +42,10 @@ VALUE       OPCODE  EXPLANATION
 0x00000012  JNZ     pop a, pop b, if a != 0 goto b
 0x00000013  DROP    remove top of stack
 0x00000014  COMPL   pop a, push the complement of a
+0x00000015  CINC	counter++
+0x00000016  CDEC	counter--
+0x00000017  CTS		push counter, counter = 0
+0x00000018  STC		pop a, counter = a
 */
 
 func main() {
