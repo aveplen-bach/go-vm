@@ -127,6 +127,10 @@ func Test_lexemiter_next(t *testing.T) {
 	}
 }
 
+func fsmlexFromString(src string) *fsmlex {
+	return newfsmlex(&striter{buf: []rune(src)})
+}
+
 func Test_compiler_compile(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -137,7 +141,7 @@ func Test_compiler_compile(t *testing.T) {
 		{
 			name: "should compile stream of instructions",
 			c: &compiler{
-				in:     *bufio.NewReader(bytes.NewBuffer([]byte("add In jMp NOP"))),
+				lexit:  fsmlexFromString("add In jMp NOP"),
 				labels: make(map[string]uint32),
 			},
 			want: []uint32{ADD, IN, JMP, NOP},
@@ -145,7 +149,7 @@ func Test_compiler_compile(t *testing.T) {
 		{
 			name: "should compile stream of numbers",
 			c: &compiler{
-				in:     *bufio.NewReader(bytes.NewBuffer([]byte("1 2 3 123 456"))),
+				lexit:  fsmlexFromString("1 2 3 123 456"),
 				labels: make(map[string]uint32),
 			},
 			want: []uint32{1, 2, 3, 123, 456},
@@ -153,7 +157,7 @@ func Test_compiler_compile(t *testing.T) {
 		{
 			name: "should compile stream of labels terminated by instruction",
 			c: &compiler{
-				in:     *bufio.NewReader(bytes.NewBuffer([]byte("a: b: c: d: add"))),
+				lexit:  fsmlexFromString("a: b: c: d: add"),
 				labels: make(map[string]uint32),
 			},
 			want: []uint32{NOP, NOP, NOP, NOP, ADD},
@@ -167,7 +171,7 @@ func Test_compiler_compile(t *testing.T) {
 		{
 			name: "should compile stream of labels not terminated by instruction",
 			c: &compiler{
-				in:     *bufio.NewReader(bytes.NewBuffer([]byte("a: b: c: d:"))),
+				lexit:  fsmlexFromString("a: b: c: d:"),
 				labels: make(map[string]uint32),
 			},
 			want: []uint32{NOP, NOP, NOP, NOP},
@@ -181,7 +185,7 @@ func Test_compiler_compile(t *testing.T) {
 		{
 			name: "should compile stream of label refs",
 			c: &compiler{
-				in: *bufio.NewReader(bytes.NewBuffer([]byte("&a &b &c &d"))),
+				lexit: fsmlexFromString("&a &b &c &d"),
 				labels: map[string]uint32{
 					"a": 123,
 					"b": 456,
@@ -194,7 +198,7 @@ func Test_compiler_compile(t *testing.T) {
 		{
 			name: "should reference label crated before",
 			c: &compiler{
-				in:     *bufio.NewReader(bytes.NewBuffer([]byte("add nop a: load &a jmp"))),
+				lexit:  fsmlexFromString("add nop a: load &a jmp"),
 				labels: make(map[string]uint32),
 			},
 			want: []uint32{ADD, NOP, NOP, LOAD, 2, JMP},
@@ -202,7 +206,7 @@ func Test_compiler_compile(t *testing.T) {
 		{
 			name: "should be able to reference stacked lablels",
 			c: &compiler{
-				in:     *bufio.NewReader(bytes.NewBuffer([]byte("add nop a: b: load &a &b jmp"))),
+				lexit:  fsmlexFromString("add nop a: b: load &a &b jmp"),
 				labels: make(map[string]uint32),
 			},
 			want: []uint32{ADD, NOP, NOP, NOP, LOAD, 2, 3, JMP},
@@ -210,7 +214,7 @@ func Test_compiler_compile(t *testing.T) {
 		{
 			name: "should be able to resolve references before labels",
 			c: &compiler{
-				in:     *bufio.NewReader(bytes.NewBuffer([]byte("add nop &a &b load a: b: jmp"))),
+				lexit:  fsmlexFromString("add nop &a &b load a: b: jmp"),
 				labels: make(map[string]uint32),
 			},
 			want: []uint32{ADD, NOP, 5, 6, LOAD, NOP, NOP, JMP},

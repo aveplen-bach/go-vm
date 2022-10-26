@@ -13,6 +13,7 @@ const (
 	_INTEGER
 	_LABEL
 	_LABELREF
+	_COMMENT
 )
 
 var (
@@ -230,20 +231,26 @@ type labelref struct {
 }
 
 type compiler struct {
-	in     bufio.Reader
+	lexit  lexemiterator
 	labels map[string]uint32
 	lrefq  []labelref
 	ino    int
 }
 
+func newcompiler(lexit lexemiterator) *compiler {
+	return &compiler{
+		lexit:  lexit,
+		labels: make(map[string]uint32),
+		lrefq:  make([]labelref, 0),
+		ino:    0,
+	}
+}
+
 func (c *compiler) compile() []uint32 {
 	buf := make([]uint32, 0)
-	test := newruneiter(c.in)
-	test1 := newlexemiter(&test)
-	var li lexemiterator = &test1
 
-	for li.hasnext() {
-		lexem := li.next()
+	for c.lexit.hasnext() {
+		lexem := c.lexit.next()
 
 		var apnd uint32
 		switch lexem.typ {
@@ -259,6 +266,9 @@ func (c *compiler) compile() []uint32 {
 
 		case _LABELREF:
 			apnd = c.compilelabelref(lexem.val)
+
+		case _COMMENT:
+			continue
 
 		default:
 			panic("unknown lexem type")
@@ -323,9 +333,8 @@ func (c *compiler) resolvelabelrefs(prog []uint32) []uint32 {
 }
 
 func Compile(in bufio.Reader) []uint32 {
-	c := compiler{
-		in:     in,
-		labels: make(map[string]uint32),
-	}
-	return c.compile()
+	rit := newruneiter(in)
+	lexit := newfsmlex(&rit)
+	comp := newcompiler(lexit)
+	return comp.compile()
 }
