@@ -9,7 +9,7 @@ const (
 	STACK_DUMP_WIDTH  = 8
 )
 
-func PrintDump(cpu cpu) {
+func PrintDump(cpu *cpu) {
 	// memory header
 	fmt.Print("+")
 	for i := 0; i < 117; i++ {
@@ -31,7 +31,7 @@ func PrintDump(cpu cpu) {
 
 	// memory dump
 	memdump := cpu.MemDump()
-	for i := 0; i < MEM_SIZE; i++ {
+	for i := 0; i < MemSize; i++ {
 		if i%MEMORY_DUMP_WIDTH == 0 {
 			fmt.Printf("| %#08x || ", i)
 		}
@@ -55,7 +55,7 @@ func PrintDump(cpu cpu) {
 
 	fmt.Println("stack:")
 	stackdump := cpu.StackDump()
-	for i := 0; i < STACK_LIMIT; i++ {
+	for i := 0; i < StackLimit; i++ {
 		fmt.Printf("%#08x", stackdump[i])
 
 		if i%STACK_DUMP_WIDTH != STACK_DUMP_WIDTH-1 {

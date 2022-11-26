@@ -114,7 +114,7 @@ func Test_lexemiter_next(t *testing.T) {
 			},
 			want: lexem{
 				val: "nop",
-				typ: _INSTRUCTION,
+				typ: instruction,
 			},
 		},
 	}
@@ -135,33 +135,33 @@ func Test_compiler_compile(t *testing.T) {
 	tests := []struct {
 		name    string
 		c       *compiler
-		want    []uint32
-		wlabels map[string]uint32
+		want    []uint16
+		wlabels map[string]uint16
 	}{
 		{
 			name: "should compile stream of instructions",
 			c: &compiler{
 				lexit:  fsmlexFromString("add In jMp NOP"),
-				labels: make(map[string]uint32),
+				labels: make(map[string]uint16),
 			},
-			want: []uint32{ADD, IN, JMP, NOP},
+			want: []uint16{ADD, IN, JMP, NOP},
 		},
 		{
 			name: "should compile stream of numbers",
 			c: &compiler{
 				lexit:  fsmlexFromString("1 2 3 123 456"),
-				labels: make(map[string]uint32),
+				labels: make(map[string]uint16),
 			},
-			want: []uint32{1, 2, 3, 123, 456},
+			want: []uint16{1, 2, 3, 123, 456},
 		},
 		{
 			name: "should compile stream of labels terminated by instruction",
 			c: &compiler{
 				lexit:  fsmlexFromString("a: b: c: d: add"),
-				labels: make(map[string]uint32),
+				labels: make(map[string]uint16),
 			},
-			want: []uint32{NOP, NOP, NOP, NOP, ADD},
-			wlabels: map[string]uint32{
+			want: []uint16{NOP, NOP, NOP, NOP, ADD},
+			wlabels: map[string]uint16{
 				"a": 0,
 				"b": 1,
 				"c": 2,
@@ -172,10 +172,10 @@ func Test_compiler_compile(t *testing.T) {
 			name: "should compile stream of labels not terminated by instruction",
 			c: &compiler{
 				lexit:  fsmlexFromString("a: b: c: d:"),
-				labels: make(map[string]uint32),
+				labels: make(map[string]uint16),
 			},
-			want: []uint32{NOP, NOP, NOP, NOP},
-			wlabels: map[string]uint32{
+			want: []uint16{NOP, NOP, NOP, NOP},
+			wlabels: map[string]uint16{
 				"a": 0,
 				"b": 1,
 				"c": 2,
@@ -186,43 +186,43 @@ func Test_compiler_compile(t *testing.T) {
 			name: "should compile stream of label refs",
 			c: &compiler{
 				lexit: fsmlexFromString("&a &b &c &d"),
-				labels: map[string]uint32{
+				labels: map[string]uint16{
 					"a": 123,
 					"b": 456,
 					"c": 789,
-					"d": 101112,
+					"d": 1011,
 				},
 			},
-			want: []uint32{123, 456, 789, 101112},
+			want: []uint16{123, 456, 789, 1011},
 		},
 		{
 			name: "should reference label crated before",
 			c: &compiler{
 				lexit:  fsmlexFromString("add nop a: load &a jmp"),
-				labels: make(map[string]uint32),
+				labels: make(map[string]uint16),
 			},
-			want: []uint32{ADD, NOP, NOP, LOAD, 2, JMP},
+			want: []uint16{ADD, NOP, NOP, LOAD, 2, JMP},
 		},
 		{
 			name: "should be able to reference stacked lablels",
 			c: &compiler{
 				lexit:  fsmlexFromString("add nop a: b: load &a &b jmp"),
-				labels: make(map[string]uint32),
+				labels: make(map[string]uint16),
 			},
-			want: []uint32{ADD, NOP, NOP, NOP, LOAD, 2, 3, JMP},
+			want: []uint16{ADD, NOP, NOP, NOP, LOAD, 2, 3, JMP},
 		},
 		{
 			name: "should be able to resolve references before labels",
 			c: &compiler{
 				lexit:  fsmlexFromString("add nop &a &b load a: b: jmp"),
-				labels: make(map[string]uint32),
+				labels: make(map[string]uint16),
 			},
-			want: []uint32{ADD, NOP, 5, 6, LOAD, NOP, NOP, JMP},
+			want: []uint16{ADD, NOP, 5, 6, LOAD, NOP, NOP, JMP},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.c.compile(); !reflect.DeepEqual(got, tt.want) {
+			if got, _ := tt.c.compile(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("compiler.compile() = %v, want %v", got, tt.want)
 			}
 

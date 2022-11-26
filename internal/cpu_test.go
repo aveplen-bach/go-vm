@@ -6,18 +6,18 @@ import (
 	"testing"
 )
 
-func meminit(memory []int) []uint32 {
-	return sliceinit(memory, MEM_SIZE)
+func meminit(memory []int) []uint16 {
+	return sliceinit(memory, MemSize)
 }
 
-func stinit(stack []int) []uint32 {
-	return sliceinit(stack, STACK_LIMIT)
+func stinit(stack []int) []uint16 {
+	return sliceinit(stack, StackLimit)
 }
 
-func sliceinit(content []int, size int) []uint32 {
-	sl := make([]uint32, size)
+func sliceinit(content []int, size int) []uint16 {
+	sl := make([]uint16, size)
 	for i, v := range content {
-		sl[i] = uint32(v)
+		sl[i] = uint16(v)
 	}
 	return sl
 }
@@ -56,7 +56,7 @@ func eq(expected cpu, got cpu) (bool, error) {
 
 func TestCpu_push(t *testing.T) {
 	type args struct {
-		n uint32
+		n uint16
 	}
 	tests := []struct {
 		name string
@@ -96,7 +96,7 @@ func TestCpu_pop(t *testing.T) {
 		name  string
 		c     cpu
 		want  cpu
-		want1 uint32
+		want1 uint16
 	}{
 		{
 			name: "pop should return top value",
@@ -106,7 +106,7 @@ func TestCpu_pop(t *testing.T) {
 			},
 			want: cpu{
 				sp:    0,
-				stack: stinit([]int{1}), // stack memory is not cleared
+				stack: stinit([]int{1}),
 			},
 			want1: 1,
 		},
@@ -139,7 +139,7 @@ func TestCpu_iadd(t *testing.T) {
 			},
 			want: cpu{
 				sp:    1,
-				stack: stinit([]int{3, 2}), // stack memory is not cleared
+				stack: stinit([]int{3, 0}),
 			},
 		},
 	}
@@ -169,7 +169,7 @@ func TestCpu_isub(t *testing.T) {
 			},
 			want: cpu{
 				sp:    1,
-				stack: stinit([]int{1, 1}), // stack memory is not cleared
+				stack: stinit([]int{1, 0}),
 			},
 		},
 	}
@@ -199,7 +199,7 @@ func TestCpu_iand(t *testing.T) {
 			},
 			want: cpu{
 				sp:    1,
-				stack: stinit([]int{5, 5}), // stack memory is not cleared
+				stack: stinit([]int{5, 0}),
 			},
 		},
 	}
@@ -229,7 +229,7 @@ func TestCpu_ior(t *testing.T) {
 			},
 			want: cpu{
 				sp:    1,
-				stack: stinit([]int{7, 5}), // stack memory is not cleared
+				stack: stinit([]int{7, 0}),
 			},
 		},
 	}
@@ -259,7 +259,7 @@ func TestCpu_ixor(t *testing.T) {
 			},
 			want: cpu{
 				sp:    1,
-				stack: stinit([]int{2, 5}), // stack memory is not cleared
+				stack: stinit([]int{2, 0}),
 			},
 		},
 	}
@@ -352,7 +352,7 @@ func TestCpu_istor(t *testing.T) {
 			},
 			want: cpu{
 				sp:     0,
-				stack:  stinit([]int{34, 1}),
+				stack:  stinit([]int{34}),
 				memory: meminit([]int{1, 34, 3}),
 			},
 		},
@@ -384,7 +384,7 @@ func TestCpu_ijmp(t *testing.T) {
 			},
 			want: cpu{
 				sp:    0,
-				ip:    42 + MEM_SIZE/2,
+				ip:    42 + MemSize/2,
 				stack: stinit([]int{42}),
 			},
 		},
@@ -416,8 +416,8 @@ func TestCpu_ijz(t *testing.T) {
 			},
 			want: cpu{
 				sp:    0,
-				ip:    42 + MEM_SIZE/2,
-				stack: stinit([]int{42, 0}),
+				ip:    42 + MemSize/2,
+				stack: stinit([]int{42}),
 			},
 		},
 		{
@@ -430,7 +430,7 @@ func TestCpu_ijz(t *testing.T) {
 			want: cpu{
 				sp:    0,
 				ip:    0,
-				stack: stinit([]int{42, 1}),
+				stack: stinit([]int{42}),
 			},
 		},
 	}
@@ -585,8 +585,8 @@ func TestCpu_ijnz(t *testing.T) {
 			},
 			want: cpu{
 				sp:    0,
-				ip:    42 + MEM_SIZE/2,
-				stack: stinit([]int{42, 1}),
+				ip:    42 + MemSize/2,
+				stack: stinit([]int{42}),
 			},
 		},
 		{
@@ -599,7 +599,7 @@ func TestCpu_ijnz(t *testing.T) {
 			want: cpu{
 				sp:    0,
 				ip:    0,
-				stack: stinit([]int{42, 0}),
+				stack: stinit([]int{42}),
 			},
 		},
 	}
@@ -679,20 +679,20 @@ func TestCpu_MemDump(t *testing.T) {
 	tests := []struct {
 		name string
 		c    cpu
-		want []uint32
+		want []uint16
 	}{
 		{
 			name: "should return copy of memory dump",
 			c: cpu{
-				memory: []uint32{1, 2, 3},
+				memory: []uint16{1, 2, 3},
 			},
-			want: []uint32{1, 2, 3},
+			want: []uint16{1, 2, 3},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			ttwant := make([]uint32, MEM_SIZE)
+			ttwant := make([]uint16, MemSize)
 			copy(ttwant, tt.want)
 			tt.want = ttwant
 

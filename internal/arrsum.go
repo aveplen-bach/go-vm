@@ -1,6 +1,6 @@
 package internal
 
-var program = []uint32{
+var program = []uint16{
 	// load len(arr)
 	/* 00 */ PUSH,
 	/* 01 */ 0,
@@ -63,10 +63,10 @@ var program = []uint32{
 //	      |
 //	length/result
 func ArraySum(arr []int) int {
-	memory := make([]uint32, 0, len(arr)+1)
-	memory = append(memory, uint32(len(arr)))
+	memory := make([]uint16, 0, len(arr)+1)
+	memory = append(memory, uint16(len(arr)))
 	for _, v := range arr {
-		memory = append(memory, uint32(v))
+		memory = append(memory, uint16(v))
 	}
 
 	cpu := WithMemProg(memory, program)

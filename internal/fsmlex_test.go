@@ -31,36 +31,36 @@ func Test_fsmlex_next(t *testing.T) {
 			name: "stop single line comment on line break of \\n",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("//abc\nabc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "//abc",
-				typ: _COMMENT,
+				typ: comment,
 			},
 		},
 		{
 			name: "stop single line comment on line break of \\r",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("//abc\r abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "//abc",
-				typ: _COMMENT,
+				typ: comment,
 			},
 		},
 		{
 			name: "stop single line comment on line break of \\r\\n",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("//abc\r\n abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "//abc",
-				typ: _COMMENT,
+				typ: comment,
 			},
 		},
 
@@ -69,24 +69,24 @@ func Test_fsmlex_next(t *testing.T) {
 			name: "consume chunk as multiline comment",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("/* abc \r a \n b \r\n abc */ c")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "/* abc \r a \n b \r\n abc */",
-				typ: _COMMENT,
+				typ: comment,
 			},
 		},
 		{
 			name: "ignore asterisks until slash",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("/* abc \r a \n b \r\n abc * * **** c */")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "/* abc \r a \n b \r\n abc * * **** c */",
-				typ: _COMMENT,
+				typ: comment,
 			},
 		},
 
@@ -95,48 +95,48 @@ func Test_fsmlex_next(t *testing.T) {
 			name: "consume short integer",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("1 abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "1",
-				typ: _INTEGER,
+				typ: integer,
 			},
 		},
 		{
 			name: "consume long integer",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("1234567890 abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "1234567890",
-				typ: _INTEGER,
+				typ: integer,
 			},
 		},
 		{
 			name: "consume hex integer",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("0x123FB abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "0x123FB",
-				typ: _INTEGER,
+				typ: integer,
 			},
 		},
 		{
 			name: "consume binary integer",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("0b010101011 abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "0b010101011",
-				typ: _INTEGER,
+				typ: integer,
 			},
 		},
 
@@ -145,36 +145,36 @@ func Test_fsmlex_next(t *testing.T) {
 			name: "consume label starting with lowercase",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("abc: abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "abc:",
-				typ: _LABEL,
+				typ: label,
 			},
 		},
 		{
 			name: "consume label starting with uppercase",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("Abc: abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "Abc:",
-				typ: _LABEL,
+				typ: label,
 			},
 		},
 		{
 			name: "consume label starting with underscore",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("_abc: abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "_abc:",
-				typ: _LABEL,
+				typ: label,
 			},
 		},
 
@@ -183,36 +183,36 @@ func Test_fsmlex_next(t *testing.T) {
 			name: "consume label reference starting with lowercase",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("&abc abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "&abc",
-				typ: _LABELREF,
+				typ: labelreference,
 			},
 		},
 		{
 			name: "consume label reference starting with uppercase",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("&Abc abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "&Abc",
-				typ: _LABELREF,
+				typ: labelreference,
 			},
 		},
 		{
 			name: "consume label reference starting with underscore",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("&_abc abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "&_abc",
-				typ: _LABELREF,
+				typ: labelreference,
 			},
 		},
 
@@ -221,12 +221,12 @@ func Test_fsmlex_next(t *testing.T) {
 			name: "consume instruction",
 			li: &fsmlex{
 				runeiter: &striter{buf: []rune("abc abc")},
-				state:    _FSM_INITIAL,
+				state:    fsmInitial,
 				buf:      []rune{},
 			},
 			want: lexem{
 				val: "abc",
-				typ: _INSTRUCTION,
+				typ: instruction,
 			},
 		},
 	}
@@ -254,35 +254,35 @@ func lex(src string) []lexem {
 func mklabel(val string) lexem {
 	return lexem{
 		val: val,
-		typ: _LABEL,
+		typ: label,
 	}
 }
 
 func mklabelref(val string) lexem {
 	return lexem{
 		val: val,
-		typ: _LABELREF,
+		typ: labelreference,
 	}
 }
 
 func mkinteger(val string) lexem {
 	return lexem{
 		val: val,
-		typ: _INTEGER,
+		typ: integer,
 	}
 }
 
 func mkinstr(val string) lexem {
 	return lexem{
 		val: val,
-		typ: _INSTRUCTION,
+		typ: instruction,
 	}
 }
 
 func mkcomment(val string) lexem {
 	return lexem{
 		val: val,
-		typ: _COMMENT,
+		typ: comment,
 	}
 }
 

@@ -3,18 +3,18 @@ package internal
 import "fmt"
 
 const (
-	_FSM_INITIAL = iota + 1
-	_FSM_NUMBER
-	_FSM_HEX_OR_BIN_NUMBER
-	_FSM_HEX_NUMBER
-	_FSM_BIN_NUMBER
-	_FSM_LABELREF
-	_FSM_INSTR
-	_FSM_LABEL
-	_FSM_COMMENT
-	_FSM_COMMENT_ML
-	_FSM_COMMENT_ML_CLOSING
-	_FSM_COMMENT_SL
+	fsmInitial = iota + 1
+	fsmNumber
+	fsmHexOrBinNumber
+	fsmHexNumber
+	fsmBinNumber
+	fsmLabelref
+	fsmInstruction
+	fsmLabel
+	fsmComment
+	fsmCommentML
+	fsmCommentMLClosing
+	fsmCommentSL
 )
 
 type statehandle func(rune) int
@@ -37,48 +37,48 @@ func (f *fsmlex) init() {
 
 func (f *fsmlex) inithmap() {
 	f.hmap = map[int]statehandle{
-		_FSM_INITIAL:            f.initial,
-		_FSM_NUMBER:             f.number,
-		_FSM_HEX_OR_BIN_NUMBER:  f.hbnumber,
-		_FSM_HEX_NUMBER:         f.hnumber,
-		_FSM_BIN_NUMBER:         f.bnumber,
-		_FSM_LABELREF:           f.labelref,
-		_FSM_INSTR:              f.instr,
-		_FSM_LABEL:              f.label,
-		_FSM_COMMENT:            f.comment,
-		_FSM_COMMENT_ML:         f.commentml,
-		_FSM_COMMENT_ML_CLOSING: f.commentmlclosing,
-		_FSM_COMMENT_SL:         f.commentsl,
+		fsmInitial:          f.initial,
+		fsmNumber:           f.number,
+		fsmHexOrBinNumber:   f.hbnumber,
+		fsmHexNumber:        f.hnumber,
+		fsmBinNumber:        f.bnumber,
+		fsmLabelref:         f.labelref,
+		fsmInstruction:      f.instr,
+		fsmLabel:            f.label,
+		fsmComment:          f.comment,
+		fsmCommentML:        f.commentml,
+		fsmCommentMLClosing: f.commentmlclosing,
+		fsmCommentSL:        f.commentsl,
 	}
 }
 
 func (f *fsmlex) initial(next rune) int {
 	if next == '0' {
 		f.buf = append(f.buf, next)
-		return _FSM_HEX_OR_BIN_NUMBER
+		return fsmHexOrBinNumber
 	}
 	if digit(next) {
 		f.buf = append(f.buf, next)
-		return _FSM_NUMBER
+		return fsmNumber
 	}
 
 	if next == '&' {
 		f.buf = append(f.buf, next)
-		return _FSM_LABELREF
+		return fsmLabelref
 	}
 
 	if labstch(next) {
 		f.buf = append(f.buf, next)
-		return _FSM_INSTR
+		return fsmInstruction
 	}
 
 	if next == '/' {
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT
+		return fsmComment
 	}
 
 	if whch(next) {
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 
 	panic(fmt.Errorf("could not determine next state from '%v' at INITIAL", next))
@@ -87,11 +87,11 @@ func (f *fsmlex) initial(next rune) int {
 func (f *fsmlex) comment(next rune) int {
 	if next == '/' {
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT_SL
+		return fsmCommentSL
 	}
 	if next == '*' {
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT_ML
+		return fsmCommentML
 	}
 	panic(fmt.Errorf("could not determine next state from '%v' at COMMENT", next))
 }
@@ -99,53 +99,53 @@ func (f *fsmlex) comment(next rune) int {
 func (f *fsmlex) commentml(next rune) int {
 	if next == '*' {
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT_ML_CLOSING
+		return fsmCommentMLClosing
 	}
 	f.buf = append(f.buf, next)
-	return _FSM_COMMENT_ML
+	return fsmCommentML
 }
 
 func (f *fsmlex) commentmlclosing(next rune) int {
 	if next == '/' {
 		f.buf = append(f.buf, next)
 		f.yield()
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 	if next == '*' {
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT_ML_CLOSING
+		return fsmCommentMLClosing
 	}
 	f.buf = append(f.buf, next)
-	return _FSM_COMMENT_ML
+	return fsmCommentML
 }
 
 func (f *fsmlex) commentsl(next rune) int {
 	if next == '\n' || next == '\r' {
 		f.yield()
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 	f.buf = append(f.buf, next)
-	return _FSM_COMMENT_SL
+	return fsmCommentSL
 }
 
 func (f *fsmlex) number(next rune) int {
 	if digit(next) || next == 'b' || next == 'x' {
 		f.buf = append(f.buf, next)
-		return _FSM_NUMBER
+		return fsmNumber
 	}
 	if next == '&' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_LABELREF
+		return fsmLabelref
 	}
 	if next == '/' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT
+		return fsmComment
 	}
 	if whch(next) {
 		f.yield()
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 	panic(fmt.Errorf("illegal character inside number: '%s'", string(next)))
 }
@@ -153,25 +153,25 @@ func (f *fsmlex) number(next rune) int {
 func (f *fsmlex) hbnumber(next rune) int {
 	if next == 'b' {
 		f.buf = append(f.buf, next)
-		return _FSM_BIN_NUMBER
+		return fsmBinNumber
 	}
 	if next == 'x' {
 		f.buf = append(f.buf, next)
-		return _FSM_HEX_NUMBER
+		return fsmHexNumber
 	}
 	if next == '&' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_LABELREF
+		return fsmLabelref
 	}
 	if next == '/' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT
+		return fsmComment
 	}
 	if whch(next) {
 		f.yield()
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 
 	panic(fmt.Errorf("illegal number format: '%s'", string(next)))
@@ -180,21 +180,21 @@ func (f *fsmlex) hbnumber(next rune) int {
 func (f *fsmlex) hnumber(next rune) int {
 	if hexdig(next) {
 		f.buf = append(f.buf, next)
-		return _FSM_HEX_NUMBER
+		return fsmHexNumber
 	}
 	if next == '&' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_LABELREF
+		return fsmLabelref
 	}
 	if next == '/' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT
+		return fsmComment
 	}
 	if whch(next) {
 		f.yield()
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 	panic(fmt.Errorf("illegal hex digit: '%s'", string(next)))
 }
@@ -202,21 +202,21 @@ func (f *fsmlex) hnumber(next rune) int {
 func (f *fsmlex) bnumber(next rune) int {
 	if bindig(next) {
 		f.buf = append(f.buf, next)
-		return _FSM_BIN_NUMBER
+		return fsmBinNumber
 	}
 	if next == '&' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_LABELREF
+		return fsmLabelref
 	}
 	if next == '/' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT
+		return fsmComment
 	}
 	if whch(next) {
 		f.yield()
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 	panic(fmt.Errorf("illegal binary digit: '%s'", string(next)))
 }
@@ -224,21 +224,21 @@ func (f *fsmlex) bnumber(next rune) int {
 func (f *fsmlex) labelref(next rune) int {
 	if labstch(next) || digit(next) {
 		f.buf = append(f.buf, next)
-		return _FSM_LABELREF
+		return fsmLabelref
 	}
 	if next == '&' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_LABELREF
+		return fsmLabelref
 	}
 	if next == '/' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT
+		return fsmComment
 	}
 	if whch(next) {
 		f.yield()
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 	panic(fmt.Errorf("illegal character for labelref: '%v'", next))
 }
@@ -278,15 +278,15 @@ func labch(r rune) bool {
 }
 
 var statetyp = map[int]int{
-	_FSM_NUMBER:             _INTEGER,
-	_FSM_HEX_OR_BIN_NUMBER:  _INTEGER,
-	_FSM_HEX_NUMBER:         _INTEGER,
-	_FSM_BIN_NUMBER:         _INTEGER,
-	_FSM_LABELREF:           _LABELREF,
-	_FSM_INSTR:              _INSTRUCTION,
-	_FSM_LABEL:              _LABEL,
-	_FSM_COMMENT_ML_CLOSING: _COMMENT,
-	_FSM_COMMENT_SL:         _COMMENT,
+	fsmNumber:           integer,
+	fsmHexOrBinNumber:   integer,
+	fsmHexNumber:        integer,
+	fsmBinNumber:        integer,
+	fsmLabelref:         labelreference,
+	fsmInstruction:      instruction,
+	fsmLabel:            label,
+	fsmCommentMLClosing: comment,
+	fsmCommentSL:        comment,
 }
 
 func (f *fsmlex) yield() {
@@ -309,27 +309,27 @@ func (f *fsmlex) yield() {
 func (f *fsmlex) instr(next rune) int {
 	if labch(next) {
 		f.buf = append(f.buf, next)
-		return _FSM_INSTR
+		return fsmInstruction
 	}
 	if next == ':' {
 		f.buf = append(f.buf, next)
-		f.state = _FSM_LABEL
+		f.state = fsmLabel
 		f.yield()
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 	if next == '&' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_LABELREF
+		return fsmLabelref
 	}
 	if whch(next) {
 		f.yield()
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 	if next == '/' {
 		f.yield()
 		f.buf = append(f.buf, next)
-		return _FSM_COMMENT
+		return fsmComment
 	}
 	panic(fmt.Errorf("illegal character for instruction or label: '%s'", string(next)))
 }
@@ -337,7 +337,7 @@ func (f *fsmlex) instr(next rune) int {
 func (f *fsmlex) label(next rune) int {
 	if whch(next) {
 		f.yield()
-		return _FSM_INITIAL
+		return fsmInitial
 	}
 	panic(fmt.Errorf("illegal character for label: '%v'", next))
 }
@@ -345,7 +345,7 @@ func (f *fsmlex) label(next rune) int {
 func newfsmlex(runeiter runeiterator) *fsmlex {
 	ret := &fsmlex{
 		runeiter: runeiter,
-		state:    _FSM_INITIAL,
+		state:    fsmInitial,
 	}
 	ret.init()
 	return ret

@@ -4,19 +4,20 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"time"
 )
 
 const (
-	MEM_SIZE    int = 200
-	STACK_LIMIT int = 16
+	MemSize    int = 200
+	StackLimit int = 16
 )
 
 type handler func()
 
 type cpu struct {
-	stack   []uint32
-	memory  []uint32
-	cnt     uint32
+	stack   []uint16
+	memory  []uint16
+	cnt     uint16
 	sp      int
 	ip      int
 	hmap    map[int]handler
@@ -43,11 +44,11 @@ func (c *cpu) init() {
 }
 
 func (c *cpu) initstack() {
-	c.stack = make([]uint32, STACK_LIMIT)
+	c.stack = make([]uint16, StackLimit)
 }
 
 func (c *cpu) initmem() {
-	c.memory = make([]uint32, MEM_SIZE)
+	c.memory = make([]uint16, MemSize)
 }
 
 func (c *cpu) initsp() {
@@ -55,7 +56,7 @@ func (c *cpu) initsp() {
 }
 
 func (c *cpu) initip() {
-	c.ip = MEM_SIZE / 2
+	c.ip = MemSize / 2
 }
 
 func (c *cpu) inithmap() {
@@ -93,23 +94,23 @@ func (c *cpu) initrunning() {
 	c.running = true
 }
 
-func WithMemProg(memory []uint32, program []uint32) *cpu {
+func WithMemProg(memory []uint16, program []uint16) *cpu {
 	ret := newcpu()
 	copy(ret.memory, memory)
 	for i, v := range program {
-		ret.memory[i+MEM_SIZE/2] = v
+		ret.memory[i+MemSize/2] = v
 	}
 	return ret
 }
 
-func (c *cpu) MemDump() []uint32 {
-	dump := make([]uint32, MEM_SIZE)
+func (c *cpu) MemDump() []uint16 {
+	dump := make([]uint16, MemSize)
 	copy(dump, c.memory)
 	return dump
 }
 
-func (c *cpu) StackDump() []uint32 {
-	dump := make([]uint32, STACK_LIMIT)
+func (c *cpu) StackDump() []uint16 {
+	dump := make([]uint16, StackLimit)
 	copy(dump, c.stack)
 	return dump
 }
@@ -122,9 +123,42 @@ func (c *cpu) GetIp() int {
 	return c.ip
 }
 
-func (c *cpu) Run() {
+type RunConfig struct {
+	Pause   int
+	Verbose bool
+}
+
+type RunOpt func(*RunConfig)
+
+func WithPause(pause int) RunOpt {
+	return func(rc *RunConfig) {
+		rc.Pause = pause
+	}
+}
+
+func WithVerbose() RunOpt {
+	return func(rc *RunConfig) {
+		rc.Verbose = true
+	}
+}
+
+func (c *cpu) Run(opts ...RunOpt) {
+	config := &RunConfig{}
+
+	for _, o := range opts {
+		o(config)
+	}
+
 	for c.running {
 		c.tick()
+
+		if config.Pause > 0 {
+			time.Sleep(time.Duration(int(time.Millisecond) * config.Pause))
+		}
+
+		if config.Verbose {
+			PrintDump(c)
+		}
 	}
 }
 
@@ -141,17 +175,17 @@ func (c *cpu) Tick() {
 	c.tick()
 }
 
-func (c *cpu) fetch() uint32 {
+func (c *cpu) fetch() uint16 {
 	cmd := c.memory[c.ip]
 	c.ip++
 	return cmd
 }
 
-func (c *cpu) decode(opcode uint32) uint32 {
+func (c *cpu) decode(opcode uint16) uint16 {
 	return opcode
 }
 
-func (c *cpu) execute(cmd uint32) {
+func (c *cpu) execute(cmd uint16) {
 	h, ok := c.hmap[int(cmd)]
 	if !ok {
 		panic("unknown command")
@@ -159,18 +193,19 @@ func (c *cpu) execute(cmd uint32) {
 	h()
 }
 
-func (c *cpu) push(n uint32) {
-	if c.sp == STACK_LIMIT {
+func (c *cpu) push(n uint16) {
+	if c.sp == StackLimit {
 		panic("stack overflow")
 	}
 	c.stack[c.sp] = n
 	c.sp++
 }
 
-func (c *cpu) pop() uint32 {
+func (c *cpu) pop() uint16 {
 	if c.sp == 0 {
 		panic("stack underflow")
 	}
+	c.stack[c.sp] = 0
 	c.sp--
 	return c.stack[c.sp]
 }
@@ -228,7 +263,7 @@ func (c *cpu) iin() {
 	if err != nil {
 		panic(err)
 	}
-	c.push(uint32(b))
+	c.push(uint16(b))
 }
 
 // write top of the stack into stdout
@@ -254,7 +289,7 @@ func (c *cpu) istor() {
 
 // pop a, goto a
 func (c *cpu) ijmp() {
-	c.ip = int(c.pop()) + MEM_SIZE/2
+	c.ip = int(c.pop()) + MemSize/2
 }
 
 // pop a, pop b, if a == 0 goto b
@@ -262,7 +297,7 @@ func (c *cpu) ijz() {
 	a := c.pop()
 	b := c.pop()
 	if a == 0 {
-		c.ip = int(b) + MEM_SIZE/2
+		c.ip = int(b) + MemSize/2
 	}
 }
 
@@ -299,7 +334,7 @@ func (c *cpu) irol3() {
 
 // write stack top into stdin as number
 func (c *cpu) ioutnum() {
-	fmt.Printf("%d", c.pop())
+	fmt.Printf("%d\n", c.pop())
 }
 
 // pop a, pop b, if a != 0 goto b
@@ -307,7 +342,7 @@ func (c *cpu) ijnz() {
 	a := c.pop()
 	b := c.pop()
 	if a != 0 {
-		c.ip = int(b) + MEM_SIZE/2
+		c.ip = int(b) + MemSize/2
 	}
 }
 
