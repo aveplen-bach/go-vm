@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -14,6 +15,8 @@ var opts struct {
 	Input   string `short:"i" long:"input" description:"Input file name"`
 	Verbose bool   `short:"v" long:"verbose" description:"Dump machine state on every instruction"`
 	Pause   int    `short:"p" long:"pause" description:"Lenght of the pause after command execution (ms)"`
+	Dump    bool   `short:"d" long:"dump" description:"Dump machine state after execution"`
+	SBS     bool   `short:"s" long:"sbs" descripiton:"Step by step execution"`
 }
 
 func main() {
@@ -72,6 +75,14 @@ func main() {
 		runOpts = append(runOpts, internal.WithVerbose())
 	}
 
+	if opts.SBS {
+		runOpts = append(runOpts, internal.WithSbs())
+	}
+
 	log.Println("starting execution")
 	cpu.Run(runOpts...)
+
+	if opts.Dump {
+		fmt.Println(cpu.Dump(internal.WithColor()))
+	}
 }

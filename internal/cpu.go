@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 const (
@@ -127,6 +129,7 @@ func (c *cpu) GetIp() int {
 type RunConfig struct {
 	Pause   int
 	Verbose bool
+	SBS     bool
 }
 
 type RunOpt func(*RunConfig)
@@ -140,6 +143,12 @@ func WithPause(pause int) RunOpt {
 func WithVerbose() RunOpt {
 	return func(rc *RunConfig) {
 		rc.Verbose = true
+	}
+}
+
+func WithSbs() RunOpt {
+	return func(rc *RunConfig) {
+		rc.SBS = true
 	}
 }
 
@@ -158,9 +167,129 @@ func (c *cpu) Run(opts ...RunOpt) {
 		}
 
 		if config.Verbose {
-			PrintDump(c)
+			fmt.Println(c.Dump())
+		}
+
+		if config.SBS {
+			fmt.Println(c.Dump(WithColor()))
+			fmt.Scanln()
 		}
 	}
+}
+
+type DumpConfig struct {
+	color bool
+}
+
+type DumpOpt func(dc *DumpConfig)
+
+func WithColor() DumpOpt {
+	return func(dc *DumpConfig) {
+		dc.color = true
+	}
+}
+
+const dumpWidth = 8
+
+func border() string {
+	line := "-"
+	for i := 0; i < dumpWidth; i++ {
+		line += "---------"
+	}
+	for i := 0; i < dumpWidth-1; i++ {
+		line += "-"
+	}
+	return fmt.Sprintf("+%s+\n", line)
+}
+
+func memHeader() string {
+	res := "| memory |"
+	for i := 0; i < dumpWidth; i++ {
+		res += fmt.Sprintf("     +%d |", i)
+	}
+	res += "\r\n"
+	return res
+}
+
+func stackHeader() string {
+	res := "| stack  |"
+	for i := 0; i < dumpWidth; i++ {
+		res += fmt.Sprintf("     +%d |", i)
+	}
+	res += "\r\n"
+	return res
+}
+
+func formatNumber(num uint16, c, b bool) string {
+	prefix := "0x"
+	snum := fmt.Sprintf("%x", num)
+	for len(prefix)+len(snum) < len("0x0000") {
+		prefix += "0"
+	}
+
+	if !c {
+		return prefix + snum
+	}
+
+	if b {
+		bgWhite := color.New(color.BgWhite)
+		return bgWhite.Sprint(color.BlackString(prefix + snum))
+	}
+
+	if num == 0 {
+		return prefix + snum
+	}
+
+	prefix = color.MagentaString(prefix)
+	snum = color.BlueString(snum)
+	return prefix + snum
+}
+
+func dtable(color bool, current int, dump []uint16) string {
+	res := ""
+	for i := 0; i < len(dump); i++ {
+		if i%dumpWidth == 0 {
+			res += fmt.Sprintf("| %#04x |", i/dumpWidth*dumpWidth)
+		}
+
+		res += fmt.Sprintf(" %s |", formatNumber(dump[i], color, i == current))
+
+		if i%dumpWidth == dumpWidth-1 {
+			res += "\r\n"
+		}
+	}
+	return res
+}
+
+func (c *cpu) Dump(options ...DumpOpt) string {
+	cfg := &DumpConfig{}
+	for _, o := range options {
+		o(cfg)
+	}
+
+	md := c.MemDump()
+	sd := c.StackDump()
+
+	res := ""
+	res += border()
+	res += memHeader()
+	res += dtable(cfg.color, c.ip-1, md)
+	res += border()
+
+	res += "\n"
+
+	res += border()
+	res += stackHeader()
+	res += dtable(cfg.color, c.sp, sd)
+	res += border()
+
+	res += "\n"
+
+	res += fmt.Sprintf("counter register: %d\n", c.cnt)
+	res += fmt.Sprintf("stack pointer: %d\n", c.sp)
+	res += fmt.Sprintf("instruction pointer: %d\n", c.ip)
+
+	return res
 }
 
 func (c *cpu) tick() {

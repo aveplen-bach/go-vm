@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/vm/vm.go",
-            "args": ["-i", "${workspaceFolder}/convolution.avpc", "3", "1", "2", "3", "3", "4", "5", "6"]
+            "args": ["-d", "-i", "${workspaceFolder}/convolution.avpc", "3", "1", "2", "3", "3", "4", "5", "6"]
         },
         {
             "name": "compile",
