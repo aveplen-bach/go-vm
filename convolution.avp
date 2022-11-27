@@ -1,0 +1,73 @@
+/* 00 */   arr_len:           // variable to store length of first array
+                              //
+/* 01 */   start:             //
+/* 02 */     push             // load arr len
+/* 03 */     0                //
+/* 04 */     load             //
+                              //
+/* 05 */     dup              // save first length into arr_len1
+/* 06 */     push             //
+/* 07 */     &arr_len         //
+/* 08 */     stor             //
+                              //
+/* 09 */     dup              // goto final_routine if arr len == 0
+/* 10 */     push             //
+/* 11 */     &final_routine   //
+/* 12 */     swap             //
+/* 13 */     jz               //
+                              //
+/* 14 */     stc              // counter = arr len
+                              //
+/* 15 */   mult_routine:      //
+/* 16 */     cts              // get counter
+/* 17 */     load             // load element of the first array (counter)
+                              //
+/* 18 */     cts              // get counter
+/* 19 */     push             //
+/* 20 */     &arr_len         // push arr len addr
+/* 21 */     load             // load arr len
+/* 22 */     push             //
+/* 23 */     1                //
+/* 24 */     add              //
+/* 25 */     add              //
+/* 26 */     load             // load element of the second array (counter + len1 + 1)
+                              // additional 1 is for arr2 len, which is not used in program
+                              //
+/* 27 */     mul              // arr1[i] * arr2[i]
+                              //
+/* 28 */     cdec             // counter --
+                              //
+/* 29 */     cts              // jump to sum_routine if counter == 0
+/* 30 */     push             //
+/* 31 */     &sum_routine     //
+/* 32 */     swap             //
+/* 33 */     jz               //
+                              //
+/* 34 */     push             // if counter != 0 continue multiplying on a stack
+/* 35 */     &mult_routine    //
+/* 36 */     jmp              //
+                              //
+/* 37 */   sum_routine:       //
+/* 38 */     push             // counter = len(arr)-1
+/* 39 */     &arr_len         //
+/* 40 */     load             //
+/* 41 */     stc              //
+/* 42 */     cdec             //
+                              //
+/* 43 */   while:             //
+/* 44 */     add              // arr1[i-1]*arr2[i-1] + arr1[i]*arr2[i]
+/* 45 */     cdec             // counter --
+                              //
+/* 46 */     cts              // if counter == 0 goto final_routine
+/* 47 */     push             //
+/* 48 */     &final_routine   //
+/* 49 */     swap             //
+/* 50 */     jz               //
+                              //
+/* 51 */     push             // goto while
+/* 52 */     &while           //
+/* 53 */     jmp              //
+                              //
+/* 54 */   final_routine:     //
+/* 55 */     outnum           //
+/* 56 */     term             //

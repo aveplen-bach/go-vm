@@ -29,6 +29,7 @@ const (
 	CTS
 	STC
 	TERM
+	MUL
 )
 
 func StoiSafe(name string) (int, error) {
@@ -90,6 +91,7 @@ var mapping = map[string]int{
 	"cts":    CTS,
 	"stc":    STC,
 	"term":   TERM,
+	"mul":    MUL,
 }
 
 func stoi(name string) (int, error) {
@@ -132,6 +134,7 @@ var rmapping = map[int]string{
 	CTS:    "cts",
 	STC:    "stc",
 	TERM:   "term",
+	MUL:    "mul",
 }
 
 func itos(val int) (string, error) {

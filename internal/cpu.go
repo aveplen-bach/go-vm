@@ -87,6 +87,7 @@ func (c *cpu) inithmap() {
 		CTS:    c.icts,
 		STC:    c.istc,
 		TERM:   c.iterm,
+		MUL:    c.imul,
 	}
 }
 
@@ -379,4 +380,9 @@ func (c *cpu) istc() {
 // terminate execution
 func (c *cpu) iterm() {
 	c.terminate()
+}
+
+// pop a, pop b, push a*b
+func (c *cpu) imul() {
+	c.push(c.pop() * c.pop())
 }
