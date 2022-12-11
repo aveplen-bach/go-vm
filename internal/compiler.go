@@ -34,7 +34,7 @@ type compiler struct {
 	ino    int
 }
 
-func newcompiler(lexit lexemiterator) *compiler {
+func NewCompiler(lexit lexemiterator) *compiler {
 	return &compiler{
 		lexit:  lexit,
 		labels: make(map[string]uint16),
@@ -43,7 +43,7 @@ func newcompiler(lexit lexemiterator) *compiler {
 	}
 }
 
-func (c *compiler) compile() ([]uint16, error) {
+func (c *compiler) compile(verbose bool) ([]uint16, error) {
 	buf := make([]uint16, 0)
 
 	for c.lexit.hasnext() {
@@ -53,18 +53,33 @@ func (c *compiler) compile() ([]uint16, error) {
 		switch lexem.typ {
 
 		case instruction:
+			if verbose {
+				fmt.Printf("{INSTRUCTION %s}\n", lexem.val)
+			}
 			apnd = c.compileinstr(lexem.val)
 
 		case integer:
+			if verbose {
+				fmt.Printf("{INTEGER %s}\n", lexem.val)
+			}
 			apnd = c.compileint(lexem.val)
 
 		case label:
+			if verbose {
+				fmt.Printf("{LABEL %s}\n", lexem.val)
+			}
 			apnd = c.compilelabel(lexem.val)
 
 		case labelreference:
+			if verbose {
+				fmt.Printf("{LABELREF %s}\n", lexem.val)
+			}
 			apnd = c.compilelabelref(lexem.val)
 
 		case comment:
+			if verbose {
+				fmt.Printf("{COMMENT %s}\n", lexem.val)
+			}
 			continue
 
 		default:
@@ -129,12 +144,12 @@ func (c *compiler) resolvelabelrefs(prog []uint16) []uint16 {
 	return processed
 }
 
-func Compile(in bufio.Reader) ([]uint16, error) {
+func Compile(in bufio.Reader, verbose bool) ([]uint16, error) {
 	rit := newruneiter(in)
 	lexit := newfsmlex(&rit)
-	comp := newcompiler(lexit)
+	comp := NewCompiler(lexit)
 
-	prog, err := comp.compile()
+	prog, err := comp.compile(verbose)
 	if err != nil {
 		return nil, fmt.Errorf("compiler.compile(): %w", err)
 	}

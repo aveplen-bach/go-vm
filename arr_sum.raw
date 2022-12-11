@@ -11,9 +11,6 @@
 /* 09 */   stc                  // move array length from stack top to counter reg
                                 //
                                 //
-//  +------------------------------- labels also take space in memory (to use them as variables)
-//  |                           //
-//  V                           //
 /* 10 */   while_1:             //
 /* 11 */   cts                  //
 /* 12 */   load                 //

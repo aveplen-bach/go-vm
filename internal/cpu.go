@@ -4,21 +4,20 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"time"
-
-	"github.com/fatih/color"
 )
 
 const (
-	MemSize    int = 200
+	MemSize    int = 80
 	StackLimit int = 16
+	dumpWidth      = 8
 )
 
 type handler func()
 
 type cpu struct {
 	stack   []uint16
-	memory  []uint16
+	program []uint16
+	data    []uint16
 	cnt     uint16
 	sp      int
 	ip      int
@@ -39,8 +38,8 @@ func newcpu() *cpu {
 func (c *cpu) init() {
 	c.initstack()
 	c.initmem()
+	c.initdata()
 	c.initsp()
-	c.initip()
 	c.inithmap()
 	c.initrunning()
 }
@@ -49,16 +48,16 @@ func (c *cpu) initstack() {
 	c.stack = make([]uint16, StackLimit)
 }
 
+func (c *cpu) initdata() {
+	c.data = make([]uint16, MemSize)
+}
+
 func (c *cpu) initmem() {
-	c.memory = make([]uint16, MemSize)
+	c.program = make([]uint16, MemSize)
 }
 
 func (c *cpu) initsp() {
-	c.sp = 0
-}
-
-func (c *cpu) initip() {
-	c.ip = MemSize / 2
+	c.sp = -1
 }
 
 func (c *cpu) inithmap() {
@@ -76,12 +75,11 @@ func (c *cpu) inithmap() {
 		STOR:   c.istor,
 		JMP:    c.ijmp,
 		JZ:     c.ijz,
+		JNZ:    c.ijnz,
 		PUSH:   c.ipush,
 		DUP:    c.idup,
 		SWAP:   c.iswap,
 		ROL3:   c.irol3,
-		OUTNUM: c.ioutnum,
-		JNZ:    c.ijnz,
 		DROP:   c.idrop,
 		COMPL:  c.icomp,
 		CINC:   c.icinc,
@@ -89,6 +87,7 @@ func (c *cpu) inithmap() {
 		CTS:    c.icts,
 		STC:    c.istc,
 		TERM:   c.iterm,
+		OUTNUM: c.ioutnum,
 		MUL:    c.imul,
 	}
 }
@@ -97,18 +96,22 @@ func (c *cpu) initrunning() {
 	c.running = true
 }
 
-func WithMemProg(memory []uint16, program []uint16) *cpu {
+func WithMemProg(program []uint16, data []uint16) *cpu {
 	ret := newcpu()
-	copy(ret.memory, memory)
-	for i, v := range program {
-		ret.memory[i+MemSize/2] = v
-	}
+	copy(ret.program, program)
+	copy(ret.data, data)
 	return ret
 }
 
 func (c *cpu) MemDump() []uint16 {
 	dump := make([]uint16, MemSize)
-	copy(dump, c.memory)
+	copy(dump, c.program)
+	return dump
+}
+
+func (c *cpu) DataDump() []uint16 {
+	dump := make([]uint16, MemSize)
+	copy(dump, c.data)
 	return dump
 }
 
@@ -126,70 +129,11 @@ func (c *cpu) GetIp() int {
 	return c.ip
 }
 
-type RunConfig struct {
-	Pause   int
-	Verbose bool
-	SBS     bool
-}
-
-type RunOpt func(*RunConfig)
-
-func WithPause(pause int) RunOpt {
-	return func(rc *RunConfig) {
-		rc.Pause = pause
-	}
-}
-
-func WithVerbose() RunOpt {
-	return func(rc *RunConfig) {
-		rc.Verbose = true
-	}
-}
-
-func WithSbs() RunOpt {
-	return func(rc *RunConfig) {
-		rc.SBS = true
-	}
-}
-
-func (c *cpu) Run(opts ...RunOpt) {
-	config := &RunConfig{}
-
-	for _, o := range opts {
-		o(config)
-	}
-
+func (c *cpu) Run() {
 	for c.running {
 		c.tick()
-
-		if config.Pause > 0 {
-			time.Sleep(time.Duration(int(time.Millisecond) * config.Pause))
-		}
-
-		if config.Verbose {
-			fmt.Println(c.Dump())
-		}
-
-		if config.SBS {
-			fmt.Println(c.Dump(WithColor()))
-			fmt.Scanln()
-		}
 	}
 }
-
-type DumpConfig struct {
-	color bool
-}
-
-type DumpOpt func(dc *DumpConfig)
-
-func WithColor() DumpOpt {
-	return func(dc *DumpConfig) {
-		dc.color = true
-	}
-}
-
-const dumpWidth = 8
 
 func border() string {
 	line := "-"
@@ -202,8 +146,17 @@ func border() string {
 	return fmt.Sprintf("+%s+\n", line)
 }
 
+func dataHeader() string {
+	res := "|  data  |"
+	for i := 0; i < dumpWidth; i++ {
+		res += fmt.Sprintf("     +%d |", i)
+	}
+	res += "\r\n"
+	return res
+}
+
 func memHeader() string {
-	res := "| memory |"
+	res := "|  instr |"
 	for i := 0; i < dumpWidth; i++ {
 		res += fmt.Sprintf("     +%d |", i)
 	}
@@ -220,39 +173,28 @@ func stackHeader() string {
 	return res
 }
 
-func formatNumber(num uint16, c, b bool) string {
+func formatNumber(num uint16) string {
 	prefix := "0x"
 	snum := fmt.Sprintf("%x", num)
 	for len(prefix)+len(snum) < len("0x0000") {
 		prefix += "0"
 	}
 
-	if !c {
-		return prefix + snum
-	}
-
-	if b {
-		bgWhite := color.New(color.BgWhite)
-		return bgWhite.Sprint(color.BlackString(prefix + snum))
-	}
-
 	if num == 0 {
 		return prefix + snum
 	}
 
-	prefix = color.MagentaString(prefix)
-	snum = color.BlueString(snum)
 	return prefix + snum
 }
 
-func dtable(color bool, current int, dump []uint16) string {
+func dtable(dump []uint16) string {
 	res := ""
 	for i := 0; i < len(dump); i++ {
 		if i%dumpWidth == 0 {
 			res += fmt.Sprintf("| %#04x |", i/dumpWidth*dumpWidth)
 		}
 
-		res += fmt.Sprintf(" %s |", formatNumber(dump[i], color, i == current))
+		res += fmt.Sprintf(" %s |", formatNumber(dump[i]))
 
 		if i%dumpWidth == dumpWidth-1 {
 			res += "\r\n"
@@ -261,26 +203,29 @@ func dtable(color bool, current int, dump []uint16) string {
 	return res
 }
 
-func (c *cpu) Dump(options ...DumpOpt) string {
-	cfg := &DumpConfig{}
-	for _, o := range options {
-		o(cfg)
-	}
-
+func (c *cpu) Dump() string {
 	md := c.MemDump()
+	dd := c.DataDump()
 	sd := c.StackDump()
 
 	res := ""
 	res += border()
 	res += memHeader()
-	res += dtable(cfg.color, c.ip-1, md)
+	res += dtable(md)
+	res += border()
+
+	res += "\n"
+
+	res += border()
+	res += dataHeader()
+	res += dtable(dd)
 	res += border()
 
 	res += "\n"
 
 	res += border()
 	res += stackHeader()
-	res += dtable(cfg.color, c.sp, sd)
+	res += dtable(sd)
 	res += border()
 
 	res += "\n"
@@ -306,7 +251,7 @@ func (c *cpu) Tick() {
 }
 
 func (c *cpu) fetch() uint16 {
-	cmd := c.memory[c.ip]
+	cmd := c.program[c.ip]
 	c.ip++
 	return cmd
 }
@@ -323,21 +268,22 @@ func (c *cpu) execute(cmd uint16) {
 	h()
 }
 
-func (c *cpu) push(n uint16) {
-	if c.sp == StackLimit {
+func (c *cpu) push(x uint16) {
+	if c.sp == StackLimit-1 {
 		panic("stack overflow")
 	}
-	c.stack[c.sp] = n
 	c.sp++
+	c.stack[c.sp] = x
 }
 
 func (c *cpu) pop() uint16 {
-	if c.sp == 0 {
+	if c.sp == -1 {
 		panic("stack underflow")
 	}
+	ret := c.stack[c.sp]
 	c.stack[c.sp] = 0
 	c.sp--
-	return c.stack[c.sp]
+	return ret
 }
 
 func (c *cpu) terminate() {
@@ -406,20 +352,18 @@ func (c *cpu) iout() {
 
 // pop a, push word read from memory[a]
 func (c *cpu) iload() {
-	a := c.pop()
-	c.push(c.memory[a])
+	c.push(c.data[c.pop()])
 }
 
 // pop a, pop b, write b to memory[a]
 func (c *cpu) istor() {
 	a := c.pop()
-	b := c.pop()
-	c.memory[a] = b
+	c.data[a] = c.pop()
 }
 
 // pop a, goto a
 func (c *cpu) ijmp() {
-	c.ip = int(c.pop()) + MemSize/2
+	c.ip = int(c.pop())
 }
 
 // pop a, pop b, if a == 0 goto b
@@ -427,13 +371,13 @@ func (c *cpu) ijz() {
 	a := c.pop()
 	b := c.pop()
 	if a == 0 {
-		c.ip = int(b) + MemSize/2
+		c.ip = int(b)
 	}
 }
 
 // push next word
 func (c *cpu) ipush() {
-	c.push(c.memory[c.ip])
+	c.push(c.program[c.ip])
 	c.ip++
 }
 
@@ -464,7 +408,9 @@ func (c *cpu) irol3() {
 
 // write stack top into stdin as number
 func (c *cpu) ioutnum() {
-	fmt.Printf("%d\n", c.pop())
+	a := c.pop()
+	fmt.Printf("%d\n", a)
+	c.push(a)
 }
 
 // pop a, pop b, if a != 0 goto b

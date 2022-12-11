@@ -10,7 +10,15 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/vm/vm.go",
-            "args": ["-d", "-i", "${workspaceFolder}/convolution.avpc", "3", "1", "2", "3", "3", "4", "5", "6"]
+            "args": ["-i", "${workspaceFolder}/arr_sum.compiled", "4", "1", "2", "3", "4"]
+        },
+
+        {
+            "name": "gpu",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/gpu/gpu.go",
         },
         {
             "name": "compile",

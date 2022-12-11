@@ -44,7 +44,7 @@ func eq(expected cpu, got cpu) (bool, error) {
 		)
 	}
 
-	if !reflect.DeepEqual(expected.memory, got.memory) {
+	if !reflect.DeepEqual(expected.program, got.program) {
 		return false, fmt.Errorf(
 			"memsets are not equal: %v, expeced: %v",
 			expected.ip, got.ip,
@@ -68,14 +68,14 @@ func TestCpu_push(t *testing.T) {
 			name: "push should add value to a stack",
 			args: args{1},
 			c: cpu{
-				sp:     0,
-				memory: meminit([]int{}),
-				stack:  stinit([]int{}),
+				sp:      0,
+				program: meminit([]int{}),
+				stack:   stinit([]int{}),
 			},
 			want: cpu{
-				sp:     1,
-				memory: meminit([]int{}),
-				stack:  stinit([]int{1}),
+				sp:      1,
+				program: meminit([]int{}),
+				stack:   stinit([]int{1}),
 			},
 		},
 	}
@@ -314,14 +314,14 @@ func TestCpu_iload(t *testing.T) {
 		{
 			name: "should load value from memory onto the stack",
 			c: cpu{
-				sp:     1,
-				memory: meminit([]int{5}),
-				stack:  stinit([]int{0}),
+				sp:      1,
+				program: meminit([]int{5}),
+				stack:   stinit([]int{0}),
 			},
 			want: cpu{
-				sp:     1,
-				memory: meminit([]int{5}),
-				stack:  stinit([]int{5}),
+				sp:      1,
+				program: meminit([]int{5}),
+				stack:   stinit([]int{5}),
 			},
 		},
 	}
@@ -346,14 +346,14 @@ func TestCpu_istor(t *testing.T) {
 		{
 			name: "should store value from stack into memory",
 			c: cpu{
-				sp:     2,
-				stack:  stinit([]int{34, 1}),
-				memory: meminit([]int{1, 2, 3}),
+				sp:      2,
+				stack:   stinit([]int{34, 1}),
+				program: meminit([]int{1, 2, 3}),
 			},
 			want: cpu{
-				sp:     0,
-				stack:  stinit([]int{34}),
-				memory: meminit([]int{1, 34, 3}),
+				sp:      0,
+				stack:   stinit([]int{34}),
+				program: meminit([]int{1, 34, 3}),
 			},
 		},
 	}
@@ -455,16 +455,16 @@ func TestCpu_ipush(t *testing.T) {
 		{
 			name: "should push next word onto the stack",
 			c: cpu{
-				sp:     0,
-				ip:     0,
-				memory: meminit([]int{42}),
-				stack:  stinit([]int{}),
+				sp:      0,
+				ip:      0,
+				program: meminit([]int{42}),
+				stack:   stinit([]int{}),
 			},
 			want: cpu{
-				sp:     1,
-				ip:     1,
-				memory: meminit([]int{42}),
-				stack:  stinit([]int{42}),
+				sp:      1,
+				ip:      1,
+				program: meminit([]int{42}),
+				stack:   stinit([]int{42}),
 			},
 		},
 	}
@@ -684,7 +684,7 @@ func TestCpu_MemDump(t *testing.T) {
 		{
 			name: "should return copy of memory dump",
 			c: cpu{
-				memory: []uint16{1, 2, 3},
+				program: []uint16{1, 2, 3},
 			},
 			want: []uint16{1, 2, 3},
 		},
