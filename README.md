@@ -12,7 +12,19 @@
 Всего можно собрать 3 exe-шника: vm (виртуальная машина), asm (компилятор) и gpu (эмулятор сложной
 задачи на gpu).
 
-У vm и asm есть параметры запуска. Посмотреть какие можно так: `go run cmd/vm/vm.go -h` и `go run cmd/asm/asm.go -h`
+У vm и asm есть параметры запуска. Посмотреть какие можно так: 
+```
+go run cmd/vm/vm.go -h
+go run cmd/asm/asm.go -h
+```
+или так:
+```
+go build cmd/vm
+go build cmd/asm
+
+./vm -h
+./asm -h
+```
 
 ### Пример сборки и запуска
 
@@ -22,10 +34,10 @@ go build cmd/asm
 go build cmd/gpu
 
 # компиляция
-./asm -v  -i ../arr_sum.raw -o ../arr_sum.compiled
+./asm -v  -i ./arr_sum.raw -o ../arr_sum.compiled
 #...list of tokens
 
-./vm -v -i ../arr_sum.compiled 4 10 11 12 13
+./vm -v -i ./arr_sum.compiled 4 10 11 12 13
 46
 #...dump
 
